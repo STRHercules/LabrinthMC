@@ -1,0 +1,59 @@
+plugins {
+    id "java"
+    id "net.neoforged.moddev" version "2.0.76"
+}
+
+group = project.findProperty("group")
+version = "0.1.1"
+
+java {
+    toolchain {
+        // NeoForge 1.21.1 requires Java 21; using the toolchain keeps IDE and CI builds aligned.
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    maven { url = "https://maven.neoforged.net/releases" }
+    mavenCentral()
+}
+
+neoForge {
+    version = project.findProperty("neo_version")
+
+    runs {
+        client { client() }
+        server { server() }
+        data { data() }
+    }
+
+    // Keep the first build tied to one common entry point; content registries belong to Phase 0.2.
+    mods {
+        "${project.findProperty("mod_id")}" {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+dependencies {
+    implementation "net.neoforged:neoforge:${project.findProperty("neo_version")}"
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = "UTF-8"
+}
+
+tasks.processResources.configure {
+    inputs.properties([
+            mod_id            : project.findProperty("mod_id"),
+            mod_name          : project.findProperty("mod_name"),
+            mod_author        : project.findProperty("mod_author"),
+            minecraft_version : project.findProperty("minecraft_version"),
+            neo_version       : project.findProperty("neo_version"),
+            version           : project.version
+    ])
+
+    filesMatching("META-INF/neoforge.mods.toml") {
+        expand(project.properties)
+    }
+}

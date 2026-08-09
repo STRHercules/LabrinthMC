@@ -26,3 +26,11 @@ replay_pid*
 
 # Folders 
 References/
+
+# Gradle and NeoForge development output
+.gradle/
+build/
+run/
+
+# The wrapper bootstrap is required for repository-local Gradle execution.
+!gradle/wrapper/gradle-wrapper.jar

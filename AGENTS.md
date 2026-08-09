@@ -52,6 +52,7 @@ If additional top-level reference directories are added later, treat them as **R
 The following locations may be modified:
 
 * `src/**`
+* `TASK.md`
 
 ### Root Documentation
 
@@ -83,7 +84,6 @@ Do **NOT** modify:
 * Verified/reference builds
 * Generated upstream source
 * External dependency source code
-* `TASK.md`
 * `AGENTS.md`
 
 If an apparent solution requires modifying a forbidden file, stop and find a solution within The Labrinth's editable source instead.
