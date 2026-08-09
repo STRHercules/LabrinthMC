@@ -36,11 +36,11 @@ Follow these guidelines for every task performed in this repository.
 
 ```text
 / (root)
-├─ TheLabrinth/                       # Catalogue of verified builds/releases (READ-ONLY)
-├─ ModDevGradle-main/                 # Gradle Source Code (READ-ONLY)
-├─ NeoForge-1.21.x/                   # NeoForge Source Code for Minecraft 1.21.1 (READ-ONLY)
-├─ Minecraft_Client_Source_1.21.1/    # Minecraft 1.21.1 Decompiled Source (READ-ONLY)
-└─ src/                               # The Labrinth Source Code (EDITABLE)
+├─ References/
+|   ├─ NeoForge-1.21.x/                     # NeoForge Source Code for Minecraft 1.21.1 (READ-ONLY)
+|   └─ Minecraft_Client_Source_1.21.1/      # Minecraft 1.21.1 Decompiled Source (READ-ONLY)
+├─ TheLabrinth/                             # Catalogue of verified builds/releases (READ-ONLY)
+└─ src/                                     # The Labrinth Source Code (EDITABLE)
 ```
 
 If additional top-level reference directories are added later, treat them as **READ-ONLY by default** unless explicitly identified as editable in this file.
