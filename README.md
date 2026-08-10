@@ -452,6 +452,19 @@ stays on the inner wall track instead of occupying the stairwell shell. The
 dimension now spans Y -32 through 255, leaving room for taller room variants
 while preserving the existing top bound.
 
+The live layout uses a dense 78-percent optional edge rate plus mandatory
+origin routes, producing more loops, junctions, and connected rooms inside
+each 64-block cell. Edge graphs are derived independently per floor, so the
+upper, main, and lower layers can diverge instead of mirroring one another.
+The dimension is fixed at midnight with zero ambient light, a black-fog biome,
+and the vanilla no-sky rendering profile.
+
+For generation visual QA, `config/labrinth-common.toml` exposes
+`darkness_mode`, enabled by default. Set it to `false` and restart the game to
+give creative players in the Labrinth hidden Night Vision and clear the short
+black inspection fog. Survival players remain in the intended darkness, and
+the dimension's fixed midnight/black-sky setup remains unchanged.
+
 Logical depth is derived from distance, deterministic branch variation, region
 transitions, landmark progression, and floor offset. It gates rare room tiers,
 weights branching corridor variants, selects depth-eligible regions, and exposes

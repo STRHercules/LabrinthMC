@@ -14,6 +14,7 @@ public final class GenerationSeeds {
     public static final long LANDMARK_SALT = 0x4C414E444D41524BL;
     public static final long CONNECTION_SALT = 0x434F4E4E45435431L;
     public static final long CONTEXT_SALT = 0x434F4E5445585431L;
+    private static final long CONNECTION_FLOOR_SALT = 0x464C4F4F525F3031L;
 
     private static final long COORDINATE_X_SALT = 0x632BE59BD9B4E019L;
     private static final long COORDINATE_Z_SALT = 0x9E3779B185EBCA87L;
@@ -101,6 +102,19 @@ public final class GenerationSeeds {
             long worldSeed,
             GenerationGrid.Cell cell,
             GenerationGrid.Direction direction) {
+        return connectionSeed(worldSeed, cell, direction, 0);
+    }
+
+    /**
+     * Derive an undirected edge seed for one floor. Keeping the floor in the
+     * edge seed prevents the same horizontal connection graph from repeating
+     * on every level while retaining the canonical two-cell ownership rule.
+     */
+    public static long connectionSeed(
+            long worldSeed,
+            GenerationGrid.Cell cell,
+            GenerationGrid.Direction direction,
+            int floorIndex) {
         GenerationGrid.Cell neighbor = cell.neighbor(direction);
         GenerationGrid.Cell first = cell;
         GenerationGrid.Cell second = neighbor;
@@ -110,6 +124,7 @@ public final class GenerationSeeds {
         }
 
         long value = mix64(worldSeed ^ DIMENSION_SALT ^ CONNECTION_SALT);
+        value = mix64(value ^ floorIndex * CONNECTION_FLOOR_SALT);
         value = mix64(value ^ first.x() * COORDINATE_X_SALT);
         value = mix64(value ^ first.z() * COORDINATE_Z_SALT);
         value = mix64(value ^ second.x() * COORDINATE_X_SALT);

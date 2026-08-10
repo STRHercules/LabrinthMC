@@ -108,11 +108,34 @@ public final class GenerationArchitectureSelfCheck {
             for (int z = -8; z <= 8; z++) {
                 GenerationGrid.Cell candidate = new GenerationGrid.Cell(x, z);
                 if (x != 0 || z != 0) {
-                    require(!GenerationNeighbors.forCell(worldSeed, candidate).connected().isEmpty(),
-                            "every non-origin cell has a deterministic route toward the core");
+                    for (int floor = VerticalCatalog.MIN_FLOOR;
+                            floor <= VerticalCatalog.MAX_FLOOR;
+                            floor++) {
+                        require(!GenerationNeighbors.forCell(worldSeed, candidate, floor)
+                                        .connected().isEmpty(),
+                                "every non-origin floor cell has a deterministic route toward the core");
+                    }
                 }
             }
         }
+        int totalConnections = 0;
+        int cellCount = 0;
+        boolean floorLayoutsVary = false;
+        for (int x = -8; x <= 8; x++) {
+            for (int z = -8; z <= 8; z++) {
+                GenerationGrid.Cell candidate = new GenerationGrid.Cell(x, z);
+                totalConnections += GenerationNeighbors.forCell(worldSeed, candidate, 0)
+                        .connected().size();
+                cellCount++;
+                floorLayoutsVary |= !GenerationNeighbors.forCell(worldSeed, candidate, -1)
+                        .connected()
+                        .equals(GenerationNeighbors.forCell(worldSeed, candidate, 0).connected());
+            }
+        }
+        require(totalConnections * 2 >= cellCount * 5,
+                "the shared edge graph remains densely interconnected");
+        require(floorLayoutsVary,
+                "floor-specific edge seeds prevent mirrored horizontal layouts");
     }
 
     private static void checkGenerationOrderIndependence() {

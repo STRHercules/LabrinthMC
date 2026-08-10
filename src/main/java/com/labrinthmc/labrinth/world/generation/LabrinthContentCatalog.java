@@ -19,7 +19,7 @@ import net.minecraft.world.level.levelgen.RandomState;
 
 /** Deterministic room/corridor selection and chunk-local materialization. */
 public final class LabrinthContentCatalog {
-    public static final int ROOM_CHANCE_PERCENT = 25;
+    public static final int ROOM_CHANCE_PERCENT = 36;
     public static final int DEFAULT_DEPTH = 0;
     public static final ResourceLocation DEFAULT_REGION = RoomCatalog.STANDARD_REGION;
 
@@ -266,7 +266,7 @@ public final class LabrinthContentCatalog {
             Function<GenerationGrid.Cell, Integer> depthForCell,
             Function<GenerationGrid.Cell, RegionDefinition> regionForCell) {
         Set<GenerationGrid.Direction> requestedConnections =
-                GenerationNeighbors.forCell(randomState, cell).connected();
+                GenerationNeighbors.forCell(randomState, cell, floorIndex).connected();
         Selection selection = selectForConnections(
                 randomState,
                 cell,
@@ -287,7 +287,7 @@ public final class LabrinthContentCatalog {
                     neighborDepth,
                     neighborRegion.id(),
                     floorIndex,
-                    GenerationNeighbors.forCell(randomState, neighborCell).connected());
+                    GenerationNeighbors.forCell(randomState, neighborCell, floorIndex).connected());
             if (GenerationConnectionRules.compatible(
                     selection.piece(),
                     cell,
@@ -367,7 +367,7 @@ public final class LabrinthContentCatalog {
             Function<GenerationGrid.Cell, Integer> depthForCell,
             Function<GenerationGrid.Cell, RegionDefinition> regionForCell) {
         Set<GenerationGrid.Direction> requestedConnections =
-                GenerationNeighbors.forCell(worldSeed, cell).connected();
+                GenerationNeighbors.forCell(worldSeed, cell, floorIndex).connected();
         Selection selection = selectForConnections(
                 worldSeed,
                 cell,
@@ -388,7 +388,7 @@ public final class LabrinthContentCatalog {
                     neighborDepth,
                     neighborRegion.id(),
                     floorIndex,
-                    GenerationNeighbors.forCell(worldSeed, neighborCell).connected());
+                    GenerationNeighbors.forCell(worldSeed, neighborCell, floorIndex).connected());
             if (GenerationConnectionRules.compatible(
                     selection.piece(),
                     cell,

@@ -1,3 +1,76 @@
+## 0.10.13 - Creative Darkness Inspection Toggle
+
+### Task
+Add a config toggle so creative players can temporarily see distant Labrinth
+generation while visually testing the dense layout.
+
+### Changes
+- Added the common `darkness_mode` config option, enabled by default.
+- Added a dedicated-server-safe creative inspection effect that refreshes
+  hidden Night Vision only when darkness mode is disabled.
+- Added client-only fog handling that replaces the black inspection fog and
+  restores the configured render-distance fog plane for creative inspection.
+- Incremented the mod version from `0.10.12` to `0.10.13`.
+
+### Implementation
+The dimension JSON remains permanently midnight and no-sky. The common player
+tick handler checks the config, dimension, and creative mode before refreshing
+the short hidden effect. Client viewport events are isolated in the client
+package and only change fog for a creative camera inside the Labrinth while the
+toggle is disabled.
+
+### Rationale
+Dimension type JSON is loaded as world data and cannot safely swap its visual
+effects from a runtime common config. A bounded creative-only aid keeps the
+survival atmosphere unchanged while making high-speed generation inspection
+practical on both integrated and dedicated servers.
+
+### Validation
+- `gradlew.bat generationSelfCheck --console=plain --no-daemon` passed.
+- `gradlew.bat build --console=plain --no-daemon` passed.
+- Dedicated-server startup and manual creative flyover remain the final smoke
+  checks for config loading, visibility, and distant geometry.
+- `git diff --check` passed.
+
+## 0.10.12 - Dense Floor-Varied Labyrinth
+
+### Task
+Increase hallway and room density, add more interconnection, prevent floors
+from repeating the same layout, and keep the dimension permanently dark.
+
+### Changes
+- Increased optional connection edges to 78 percent so cells form a tighter
+  network with more loops and branches.
+- Increased room selection to 36 percent and made landmark openings use the
+  floor-specific edge graph.
+- Added floor-derived edge seeds and floor-varied parent routes so the three
+  generated levels do not share one mirrored backbone.
+- Set the dimension to midnight, zero ambient light, a black-fog biome, and the
+  vanilla no-sky effects profile.
+- Incremented the mod version from `0.10.11` to `0.10.12`.
+
+### Implementation
+The existing 64-block cell ownership and bounded chunk rematerialization stay
+unchanged. Optional edges now use a percentage threshold, while the mandatory
+route toward the origin chooses its axis per cell and floor. All horizontal
+content and landmark connection checks pass the floor index into that graph.
+
+### Rationale
+Increasing the shared edge graph adds loops and junctions without duplicating
+pieces or introducing cross-chunk searches. Seeding edges by floor changes the
+actual connectivity pattern on each level while preserving deterministic
+reloads. The dimension uses the vanilla no-sky rendering profile with a
+black-fog biome, avoiding client-only rendering code.
+
+### Validation
+- `gradlew.bat generationSelfCheck --console=plain --no-daemon` passed.
+- `gradlew.bat build --console=plain --no-daemon` passed.
+- `gradlew.bat runServer --console=plain --no-daemon` reached `Done` with
+  The Labrinth `0.10.12` loaded successfully.
+- `git diff --check` passed.
+- Manual fresh-world visual QA remains required for density, floor silhouette
+  variance, midnight lighting, and sky rendering.
+
 ## 0.10.11 - Wall-Hugging Stair Corrections
 
 ### Task

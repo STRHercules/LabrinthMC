@@ -184,7 +184,7 @@ public final class LandmarkCatalog {
                         originCell,
                         profile.depth(),
                         floor),
-                availableConnections(randomState, originCell));
+                floor -> availableConnections(randomState, originCell, floor));
     }
 
     public static Optional<Instance> select(long worldSeed, GenerationGrid.Cell originCell) {
@@ -201,7 +201,7 @@ public final class LandmarkCatalog {
                         originCell,
                         profile.depth(),
                         floor),
-                availableConnections(worldSeed, originCell));
+                floor -> availableConnections(worldSeed, originCell, floor));
     }
 
     public static List<Instance> intersecting(RandomState randomState, ChunkPos chunkPos) {
@@ -330,7 +330,7 @@ public final class LandmarkCatalog {
             RandomSource random,
             Function<Integer, DepthCatalog.Profile> profileForFloor,
             BiFunction<DepthCatalog.Profile, Integer, RegionDefinition> regionForFloor,
-            Set<Connector.Direction> availableConnections) {
+            Function<Integer, Set<Connector.Direction>> connectionsForFloor) {
         if (random.nextInt(100) >= LANDMARK_CHANCE_PERCENT) {
             return Optional.empty();
         }
@@ -338,6 +338,7 @@ public final class LandmarkCatalog {
         for (int floor = VerticalCatalog.MIN_FLOOR; floor <= VerticalCatalog.MAX_FLOOR; floor++) {
             DepthCatalog.Profile profile = profileForFloor.apply(floor);
             RegionDefinition region = regionForFloor.apply(profile, floor);
+            Set<Connector.Direction> availableConnections = connectionsForFloor.apply(floor);
             for (LandmarkDefinition definition : DEFINITIONS) {
                 if (definition.weight() > 0
                         && definition.eligible(profile.depth(), floor, region.id())
@@ -368,7 +369,7 @@ public final class LandmarkCatalog {
                 option.depth(),
                 option.region(),
                 piece,
-                toOpenConnections(availableConnections)));
+                toOpenConnections(connectionsForFloor.apply(option.floorIndex()))));
     }
 
     private static Option weightedChoice(RandomSource random, List<Option> options) {
@@ -687,8 +688,9 @@ public final class LandmarkCatalog {
 
     private static Set<Connector.Direction> availableConnections(
             long worldSeed,
-            GenerationGrid.Cell cell) {
-        GenerationNeighbors neighbors = GenerationNeighbors.forCell(worldSeed, cell);
+            GenerationGrid.Cell cell,
+            int floorIndex) {
+        GenerationNeighbors neighbors = GenerationNeighbors.forCell(worldSeed, cell, floorIndex);
         EnumSet<Connector.Direction> available = EnumSet.noneOf(Connector.Direction.class);
         for (GenerationGrid.Direction direction : GenerationGrid.Direction.values()) {
             if (neighbors.hasConnection(direction)) {
@@ -700,8 +702,9 @@ public final class LandmarkCatalog {
 
     private static Set<Connector.Direction> availableConnections(
             RandomState randomState,
-            GenerationGrid.Cell cell) {
-        GenerationNeighbors neighbors = GenerationNeighbors.forCell(randomState, cell);
+            GenerationGrid.Cell cell,
+            int floorIndex) {
+        GenerationNeighbors neighbors = GenerationNeighbors.forCell(randomState, cell, floorIndex);
         EnumSet<Connector.Direction> available = EnumSet.noneOf(Connector.Direction.class);
         for (GenerationGrid.Direction direction : GenerationGrid.Direction.values()) {
             if (neighbors.hasConnection(direction)) {

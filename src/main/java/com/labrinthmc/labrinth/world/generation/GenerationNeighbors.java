@@ -11,6 +11,9 @@ import net.minecraft.world.level.levelgen.RandomState;
 
 /** Immutable cardinal neighbor connection state for one generation cell. */
 public record GenerationNeighbors(Set<GenerationGrid.Direction> connected) {
+    /** Optional loop edges are intentionally common so the maze stays compact. */
+    public static final int OPTIONAL_EDGE_CHANCE_PERCENT = 78;
+    private static final int FLOOR_RANDOM_STRIDE = 257;
     private static final ResourceLocation RANDOM_FACTORY_ID =
             ResourceLocation.fromNamespaceAndPath("labrinth", "connection_edges");
 
@@ -23,9 +26,16 @@ public record GenerationNeighbors(Set<GenerationGrid.Direction> connected) {
     }
 
     public static GenerationNeighbors forCell(long worldSeed, GenerationGrid.Cell cell) {
+        return forCell(worldSeed, cell, 0);
+    }
+
+    public static GenerationNeighbors forCell(
+            long worldSeed,
+            GenerationGrid.Cell cell,
+            int floorIndex) {
         EnumSet<GenerationGrid.Direction> connections = EnumSet.noneOf(GenerationGrid.Direction.class);
         for (GenerationGrid.Direction direction : GenerationGrid.Direction.values()) {
-            if (isConnected(worldSeed, cell, direction)) {
+            if (isConnected(worldSeed, cell, direction, floorIndex)) {
                 connections.add(direction);
             }
         }
@@ -40,12 +50,19 @@ public record GenerationNeighbors(Set<GenerationGrid.Direction> connected) {
     public static GenerationNeighbors forCell(
             RandomState randomState,
             GenerationGrid.Cell cell) {
+        return forCell(randomState, cell, 0);
+    }
+
+    public static GenerationNeighbors forCell(
+            RandomState randomState,
+            GenerationGrid.Cell cell,
+            int floorIndex) {
         Objects.requireNonNull(randomState, "randomState");
         Objects.requireNonNull(cell, "cell");
         PositionalRandomFactory factory = randomState.getOrCreateRandomFactory(RANDOM_FACTORY_ID);
         EnumSet<GenerationGrid.Direction> connections = EnumSet.noneOf(GenerationGrid.Direction.class);
         for (GenerationGrid.Direction direction : GenerationGrid.Direction.values()) {
-            if (isConnected(factory, cell, direction)) {
+            if (isConnected(factory, cell, direction, floorIndex)) {
                 connections.add(direction);
             }
         }
@@ -59,24 +76,29 @@ public record GenerationNeighbors(Set<GenerationGrid.Direction> connected) {
     private static boolean isConnected(
             long worldSeed,
             GenerationGrid.Cell cell,
-            GenerationGrid.Direction direction) {
-        return isTreeEdge(cell, direction)
-                || (GenerationSeeds.connectionSeed(worldSeed, cell, direction) & 1L) == 0L;
+            GenerationGrid.Direction direction,
+            int floorIndex) {
+        long edgeSeed = GenerationSeeds.connectionSeed(worldSeed, cell, direction, floorIndex);
+        return isTreeEdge(cell, direction, floorIndex)
+                || Long.remainderUnsigned(edgeSeed, 100L) < OPTIONAL_EDGE_CHANCE_PERCENT;
     }
 
     private static boolean isConnected(
             PositionalRandomFactory factory,
             GenerationGrid.Cell cell,
-            GenerationGrid.Direction direction) {
-        if (isTreeEdge(cell, direction)) {
+            GenerationGrid.Direction direction,
+            int floorIndex) {
+        if (isTreeEdge(cell, direction, floorIndex)) {
             return true;
         }
         Edge edge = canonicalEdge(cell, direction);
         RandomSource random = factory.at(
                 Math.toIntExact(edge.first().x()),
-                Math.toIntExact(edge.first().z()),
+                Math.addExact(
+                        Math.toIntExact(edge.first().z()),
+                        Math.multiplyExact(floorIndex, FLOOR_RANDOM_STRIDE)),
                 edge.directionFromFirst().ordinal());
-        return random.nextBoolean();
+        return random.nextInt(100) < OPTIONAL_EDGE_CHANCE_PERCENT;
     }
 
     /**
@@ -86,20 +108,28 @@ public record GenerationNeighbors(Set<GenerationGrid.Direction> connected) {
      */
     private static boolean isTreeEdge(
             GenerationGrid.Cell cell,
-            GenerationGrid.Direction direction) {
+            GenerationGrid.Direction direction,
+            int floorIndex) {
         GenerationGrid.Cell neighbor = cell.neighbor(direction);
-        GenerationGrid.Cell cellParent = parent(cell);
-        GenerationGrid.Cell neighborParent = parent(neighbor);
+        GenerationGrid.Cell cellParent = parent(cell, floorIndex);
+        GenerationGrid.Cell neighborParent = parent(neighbor, floorIndex);
         return (cellParent != null && cellParent.equals(neighbor))
                 || (neighborParent != null && neighborParent.equals(cell));
     }
 
-    private static GenerationGrid.Cell parent(GenerationGrid.Cell cell) {
-        if (cell.x() != 0) {
+    private static GenerationGrid.Cell parent(GenerationGrid.Cell cell, int floorIndex) {
+        // Pick the axis toward the origin per cell and floor. This keeps the
+        // deterministic route to the core while avoiding a repeated X-then-Z
+        // backbone on every vertical level.
+        boolean preferX = ((cell.x() * 31L + cell.z() * 17L + floorIndex * 13L) & 1L) == 0L;
+        if (preferX && cell.x() != 0) {
             return new GenerationGrid.Cell(cell.x() - Long.signum(cell.x()), cell.z());
         }
         if (cell.z() != 0) {
             return new GenerationGrid.Cell(cell.x(), cell.z() - Long.signum(cell.z()));
+        }
+        if (cell.x() != 0) {
+            return new GenerationGrid.Cell(cell.x() - Long.signum(cell.x()), cell.z());
         }
         return null;
     }

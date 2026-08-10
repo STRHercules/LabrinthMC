@@ -4,7 +4,7 @@ plugins {
 }
 
 group = project.findProperty("group")
-version = "0.10.11"
+version = "0.10.13"
 
 java {
     toolchain {

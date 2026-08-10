@@ -1,3 +1,21 @@
+## 0.10.13 Darkness toggle follow-up
+
+- Add a small in-game creative inspection command or keybind once debug tools
+  are introduced, so visual QA does not require editing the config and
+  restarting the game.
+- Add a client smoke test that confirms the inspection fog is restored when
+  leaving the Labrinth or switching out of creative mode.
+
+## 0.10.12 Dense layout follow-up
+
+- Add a small in-world generation overlay that displays floor-specific edge
+  graphs and cell ownership while debugging dense junctions.
+- Add a fresh-world visual/game test that samples the three floors, confirms
+  their connection fingerprints differ, and checks that dense loops remain
+  walkable after chunk reload.
+- Revisit the 78 percent optional-edge rate after profiling chunk generation
+  and a longer exploration pass; keep any future tuning seed-derived.
+
 ## 0.10.11 Wall-side traversal QA
 
 - Add a NeoForge game test that traverses both incline/decline directions in
