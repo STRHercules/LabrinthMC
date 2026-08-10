@@ -11,7 +11,6 @@ import com.labrinthmc.labrinth.world.region.RegionDefinition;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import net.minecraft.core.BlockPos;
@@ -107,8 +106,13 @@ public final class LabrinthChunkGenerator extends ChunkGenerator {
             forEachIntersectingVertical(
                     chunk.getPos(),
                     randomState,
+                    corridorConfig,
                     currentBoundary,
-                    (selection, region) -> VerticalCatalog.place(chunk, selection, region));
+                    vertical -> VerticalCatalog.place(
+                            chunk,
+                            vertical.selection(),
+                            vertical.region(),
+                            vertical.horizontalPlacement()));
         }
         // Landmark placement is sector-owned. Smaller pieces are filtered out
         // above so this final pass can materialize a landmark without being
@@ -208,10 +212,15 @@ public final class LabrinthChunkGenerator extends ChunkGenerator {
             forEachIntersectingVertical(
                     GenerationGrid.chunkForBlock(x, z),
                     randomState,
+                    corridorConfig,
                     currentBoundary,
-                    (selection, ignoredRegion) -> {
-                        if (VerticalCatalog.contains(selection, x, selection.lowerY(), z)) {
-                            highest[0] = Math.max(highest[0], selection.upperY());
+                    vertical -> {
+                        if (VerticalCatalog.contains(
+                                vertical.selection(),
+                                x,
+                                vertical.selection().lowerY(),
+                                z)) {
+                            highest[0] = Math.max(highest[0], vertical.selection().upperY());
                         }
                     });
         }
@@ -268,19 +277,30 @@ public final class LabrinthChunkGenerator extends ChunkGenerator {
             forEachIntersectingVertical(
                     GenerationGrid.chunkForBlock(x, z),
                     randomState,
+                    corridorConfig,
                     currentBoundary,
-                    (selection, region) -> {
-                        if (!VerticalCatalog.contains(selection, x, selection.lowerY(), z)) {
+                    vertical -> {
+                        if (!VerticalCatalog.contains(
+                                vertical.selection(),
+                                x,
+                                vertical.selection().lowerY(),
+                                z)) {
                             return;
                         }
-                        int startY = Math.max(minY, selection.lowerY());
+                        int startY = Math.max(minY, vertical.selection().lowerY());
                         int endY = Math.min(
                                 heightAccessor.getMaxBuildHeight(),
-                                selection.upperY() + 1);
+                                vertical.selection().upperY() + 1);
                         for (int y = startY; y < endY; y++) {
                             // Vertical content owns its footprint, including
                             // intentional air, so it can carve floor openings.
-                            states[y - minY] = VerticalCatalog.blockStateAt(selection, x, y, z, region);
+                            states[y - minY] = VerticalCatalog.blockStateAt(
+                                    vertical.selection(),
+                                    x,
+                                    y,
+                                    z,
+                                    vertical.region(),
+                                    vertical.horizontalPlacement());
                         }
                     });
         }
@@ -361,8 +381,9 @@ public final class LabrinthChunkGenerator extends ChunkGenerator {
     private static void forEachIntersectingVertical(
             ChunkPos chunkPos,
             RandomState randomState,
+            CorridorSelectionConfig corridorConfig,
             int lowerFloor,
-            BiConsumer<VerticalCatalog.Selection, RegionDefinition> consumer) {
+            Consumer<VerticalPlacement> consumer) {
         GenerationGrid.Cell center = GenerationGrid.cellForChunk(chunkPos.x, chunkPos.z);
         List<LandmarkCatalog.Instance> landmarks = LandmarkCatalog.intersecting(randomState, chunkPos);
         GenerationGrid.Chunk targetChunk = new GenerationGrid.Chunk(chunkPos.x, chunkPos.z);
@@ -380,13 +401,22 @@ public final class LabrinthChunkGenerator extends ChunkGenerator {
                         && landmarks.stream().noneMatch(landmark ->
                                 LandmarkCatalog.overlaps(landmark, selection.piece().bounds()))) {
                     int depth = DepthCatalog.depthAt(randomState, cell, lowerFloor);
-                    consumer.accept(
-                            selection,
-                            RegionCatalog.select(
+                    RegionDefinition region = RegionCatalog.select(
+                            randomState,
+                            cell,
+                            depth,
+                            lowerFloor);
+                    LabrinthContentCatalog.Placement horizontalPlacement =
+                            LabrinthContentCatalog.placement(
                                     randomState,
                                     cell,
+                                    corridorConfig,
                                     depth,
-                                    lowerFloor));
+                                    lowerFloor);
+                    consumer.accept(new VerticalPlacement(
+                            selection,
+                            region,
+                            horizontalPlacement));
                 }
             }
         }
@@ -395,12 +425,20 @@ public final class LabrinthChunkGenerator extends ChunkGenerator {
     private static void forEachIntersectingVertical(
             GenerationGrid.Chunk chunk,
             RandomState randomState,
+            CorridorSelectionConfig corridorConfig,
             int lowerFloor,
-            BiConsumer<VerticalCatalog.Selection, RegionDefinition> consumer) {
+            Consumer<VerticalPlacement> consumer) {
         forEachIntersectingVertical(
                 new ChunkPos(Math.toIntExact(chunk.x()), Math.toIntExact(chunk.z())),
                 randomState,
+                corridorConfig,
                 lowerFloor,
                 consumer);
+    }
+
+    private record VerticalPlacement(
+            VerticalCatalog.Selection selection,
+            RegionDefinition region,
+            LabrinthContentCatalog.Placement horizontalPlacement) {
     }
 }

@@ -37,7 +37,60 @@ public final class PlacedStructurePiece {
         connectors = definition.connectors().stream()
                 .map(connector -> connector.transformed(
                         definition.width(), definition.depth(), origin, rotation, mirror))
+                .map(connector -> normalizeCellCenter(
+                        connector,
+                        definition,
+                        origin,
+                        rotation))
                 .toList();
+    }
+
+    /**
+     * Keep canonical horizontal endpoints on the integer center of their
+     * owning cell. The raw transform correctly preserves piece boundaries,
+     * but odd-width pieces can otherwise move their cross-axis endpoint by
+     * one block when mirrored or rotated 180 degrees.
+     */
+    private static Connector normalizeCellCenter(
+            Connector connector,
+            StructurePiece definition,
+            StructurePiece.BlockPoint origin,
+            StructurePiece.Rotation rotation) {
+        if (connector.direction() == Connector.Direction.UP
+                || connector.direction() == Connector.Direction.DOWN) {
+            return connector;
+        }
+        int transformedWidth = StructurePiece.transformedWidth(
+                definition.width(), definition.depth(), rotation);
+        int transformedDepth = StructurePiece.transformedDepth(
+                definition.width(), definition.depth(), rotation);
+        long cellOriginX = origin.x() - centeredOffset(transformedWidth);
+        long cellOriginZ = origin.z() - centeredOffset(transformedDepth);
+        if (Math.floorMod(cellOriginX, GenerationGrid.CELL_SIZE_BLOCKS) != 0
+                || Math.floorMod(cellOriginZ, GenerationGrid.CELL_SIZE_BLOCKS) != 0) {
+            return connector;
+        }
+
+        Connector.Position position = connector.position();
+        long normalizedX = position.x();
+        long normalizedZ = position.z();
+        switch (connector.direction()) {
+            case NORTH, SOUTH -> normalizedX = cellOriginX + GenerationGrid.CELL_SIZE_BLOCKS / 2;
+            case EAST, WEST -> normalizedZ = cellOriginZ + GenerationGrid.CELL_SIZE_BLOCKS / 2;
+            default -> throw new IllegalStateException("unhandled horizontal connector: "
+                    + connector.direction());
+        }
+        if (normalizedX == position.x() && normalizedZ == position.z()) {
+            return connector;
+        }
+        return connector.withPosition(new Connector.Position(
+                normalizedX,
+                position.y(),
+                normalizedZ));
+    }
+
+    private static int centeredOffset(int size) {
+        return (GenerationGrid.CELL_SIZE_BLOCKS - size + 1) / 2;
     }
 
     public StructurePiece definition() {
