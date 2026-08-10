@@ -1,4 +1,4 @@
-# The Labrinth
+# The LabrINth
 
 ![Banner](Pictures/labrinth-product-banner-go-deeper.png)
 
