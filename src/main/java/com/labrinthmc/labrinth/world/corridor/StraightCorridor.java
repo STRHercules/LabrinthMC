@@ -206,8 +206,10 @@ public final class StraightCorridor {
                     cellZ - SPAWN_MARGIN);
         }
 
-        int crossAxisOffset = (GenerationGrid.CELL_SIZE_BLOCKS - WIDTH) / 2;
-        int axisOffset = (GenerationGrid.CELL_SIZE_BLOCKS - length) / 2;
+        // Align the corridor centerline with the cell boundary connector
+        // coordinate used by rooms and junctions.
+        int crossAxisOffset = (GenerationGrid.CELL_SIZE_BLOCKS - WIDTH + 1) / 2;
+        int axisOffset = (GenerationGrid.CELL_SIZE_BLOCKS - length + 1) / 2;
         return switch (rotation) {
             case NONE, CLOCKWISE_180 -> new StructurePiece.BlockPoint(
                     cellX + crossAxisOffset,

@@ -1,3 +1,52 @@
+## 0.10.6 Vertical passage follow-up
+
+- Add a NeoForge game test that samples every live vertical kind at both floor
+  boundaries and confirms the lower entry, continuous stair path, upper air
+  opening, and horizontal wall passages are walkable after chunk reload.
+- Implement drop shafts and elevator placeholders only with explicit landing,
+  cap, and room/corridor passage contracts; keep them out of live selection
+  until those contracts exist.
+- Add a small in-world vertical debug marker for stair start/end cells during
+  development, disabled in normal generation.
+
+## 0.10.5 Connection geometry follow-up
+
+- Add a NeoForge game test that samples every connected room, routed corridor,
+  and straight corridor at all four doorway layers after rotation and chunk
+  reload, checking both the canonical endpoint and the generated air volume.
+- Add a bounded stair traversal smoke test that walks from the lower floor to
+  the upper floor through the now-open seven-by-seven stairwell footprint.
+- Keep glowstone replacement centralized in the region palette if future
+  authored light blocks are introduced, and verify they remain full-cube
+  structural lights.
+
+## 0.10.4 Connector and vertical geometry follow-up
+
+- Add a NeoForge game test that samples every connected room/corridor boundary
+  at all four doorway layers and verifies there is no solid seam or air gap.
+- Add a bounded stair traversal smoke test that walks the lower step, each
+  switchback turn, the upper landing, and the centered floor opening.
+- Keep the ceiling-light fallback covered when additional region lighting
+  blocks or outage rules are introduced.
+
+## 0.10.3 Connected layout follow-up
+
+- Add a NeoForge game test or dedicated-server block-population smoke check
+  that walks every generated doorway across chunk boundaries and confirms the
+  floor, aperture, and neighbor cell remain aligned after reload.
+- Add a small visual debug mode that marks cell ownership and connection edges
+  in-world, making future layout regressions faster to diagnose without
+  changing normal generation output.
+- Tune region-specific authored landmark detail after a fresh-world
+  exploration pass; keep generic decoration sparse and floor-aware.
+
+## 0.10.2 README visual documentation follow-up
+
+- Add a lightweight image gallery or generated thumbnail index if the README
+  becomes difficult to scan as the visual documentation grows.
+- Keep the README image set synchronized with `Pictures/` when new design
+  documents or player-facing artwork are added.
+
 ## 0.10.1 Phase selector follow-up
 
 - Add focused selector tests with deliberately depth-restricted room and

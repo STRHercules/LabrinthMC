@@ -10,6 +10,7 @@ import com.labrinthmc.labrinth.world.generation.StructurePiece;
 import com.labrinthmc.labrinth.world.generation.VerticalCatalog;
 import com.labrinthmc.labrinth.world.region.RegionCatalog;
 import com.labrinthmc.labrinth.world.region.RegionDefinition;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
@@ -144,6 +145,73 @@ public final class CorridorCatalog {
                 Math.toIntExact(cell.x()),
                 floorIndex,
                 Math.toIntExact(cell.z()));
+    }
+
+    /**
+     * Select a corridor pose that can honor the already-decided cell edges.
+     * Ordinary weighted selection is intentionally separate; this path is the
+     * connection adapter used when a room or corridor shape cannot satisfy the
+     * shared edge graph.
+     */
+    public static Selection selectForConnections(
+            RandomState randomState,
+            GenerationGrid.Cell cell,
+            CorridorSelectionConfig config,
+            int depth,
+            int floorIndex,
+            ResourceLocation region,
+            Set<GenerationGrid.Direction> requiredDirections) {
+        Objects.requireNonNull(randomState, "randomState");
+        Objects.requireNonNull(cell, "cell");
+        Objects.requireNonNull(config, "config");
+        Objects.requireNonNull(region, "region");
+        Objects.requireNonNull(requiredDirections, "requiredDirections");
+        validateFloor(floorIndex);
+        validateDepth(depth);
+        validateRegion(region, depth, floorIndex);
+        PositionalRandomFactory factory = randomState.getOrCreateRandomFactory(RANDOM_FACTORY_ID);
+        RandomSource random = factory.at(
+                Math.toIntExact(cell.x()),
+                Math.addExact(depth, floorIndex),
+                Math.toIntExact(cell.z()));
+        return selectForConnections(
+                cell,
+                config,
+                depth,
+                floorIndex,
+                region,
+                requiredDirections,
+                random);
+    }
+
+    /** Seed-only equivalent used by framework-free validation and tooling. */
+    public static Selection selectForConnections(
+            long worldSeed,
+            GenerationGrid.Cell cell,
+            CorridorSelectionConfig config,
+            int depth,
+            int floorIndex,
+            ResourceLocation region,
+            Set<GenerationGrid.Direction> requiredDirections) {
+        Objects.requireNonNull(cell, "cell");
+        Objects.requireNonNull(config, "config");
+        Objects.requireNonNull(region, "region");
+        Objects.requireNonNull(requiredDirections, "requiredDirections");
+        validateFloor(floorIndex);
+        validateDepth(depth);
+        validateRegion(region, depth, floorIndex);
+        return selectForConnections(
+                cell,
+                config,
+                depth,
+                floorIndex,
+                region,
+                requiredDirections,
+                RandomSource.create(GenerationSeeds.corridorSeed(
+                        worldSeed,
+                        cell,
+                        SELECTION_LOCAL_X + depth,
+                        SELECTION_LOCAL_Z + floorIndex)));
     }
 
     public static Placement placement(
@@ -362,6 +430,124 @@ public final class CorridorCatalog {
         return new Selection(option.kind(), option.definition(), rotation, piece, directions);
     }
 
+    private static Selection selectForConnections(
+            GenerationGrid.Cell cell,
+            CorridorSelectionConfig config,
+            int depth,
+            int floorIndex,
+            ResourceLocation region,
+            Set<GenerationGrid.Direction> requiredDirections,
+            RandomSource random) {
+        Set<GenerationGrid.Direction> required = Set.copyOf(requiredDirections);
+        List<Option> options = connectionCandidates(config, region, depth, true);
+        List<ConnectionPose> exact = connectionPoses(options, required, true, cell, floorIndex);
+        List<ConnectionPose> choices = exact;
+        if (choices.isEmpty()) {
+            choices = connectionPoses(options, required, false, cell, floorIndex);
+        }
+        if (choices.isEmpty()) {
+            // A region may intentionally omit a turn or junction from its
+            // visual pool. Structural continuity wins; retain that region's
+            // palette while borrowing the smallest compatible shape globally.
+            options = connectionCandidates(config, region, depth, false);
+            choices = connectionPoses(options, required, false, cell, floorIndex);
+        }
+        if (choices.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "no corridor shape can satisfy required connections: " + required);
+        }
+        ConnectionPose chosen = weightedConnectionChoice(random, choices, config, depth);
+        PlacedStructurePiece piece = chosen.option().definition().placedAt(
+                originFor(chosen.option(), cell, chosen.rotation(), floorIndex),
+                chosen.rotation(),
+                StructurePiece.Mirror.NONE);
+        return new Selection(
+                chosen.option().kind(),
+                chosen.option().definition(),
+                chosen.rotation(),
+                piece,
+                chosen.directions());
+    }
+
+    private static List<Option> connectionCandidates(
+            CorridorSelectionConfig config,
+            ResourceLocation region,
+            int depth,
+            boolean enforceRegion) {
+        RegionDefinition regionDefinition = RegionCatalog.resolve(region);
+        return OPTIONS.stream()
+                .filter(option -> config.weight(option.kind()) > 0)
+                .filter(option -> DepthCatalog.corridorWeight(
+                        option.kind(),
+                        config.weight(option.kind()),
+                        depth) > 0)
+                .filter(option -> depth >= option.definition().minDepth()
+                        && depth <= option.definition().maxDepth())
+                .filter(option -> option.baseDirections().size() <= config.maxBranching())
+                .filter(option -> !enforceRegion
+                        || regionDefinition.allowsCorridor(option.definition().id()))
+                .toList();
+    }
+
+    private static List<ConnectionPose> connectionPoses(
+            List<Option> options,
+            Set<GenerationGrid.Direction> required,
+            boolean exact,
+            GenerationGrid.Cell cell,
+            int floorIndex) {
+        List<ConnectionPose> poses = new ArrayList<>();
+        for (Option option : options) {
+            for (StructurePiece.Rotation rotation : StructurePiece.Rotation.values()) {
+                if (!option.definition().allowedRotations().contains(rotation)) {
+                    continue;
+                }
+                EnumSet<GenerationGrid.Direction> directions = EnumSet.noneOf(GenerationGrid.Direction.class);
+                for (GenerationGrid.Direction direction : option.baseDirections()) {
+                    directions.add(direction.rotated(rotation));
+                }
+                boolean matches = exact
+                        ? directions.equals(required)
+                        : directions.containsAll(required);
+                PlacedStructurePiece placed = option.definition().placedAt(
+                        originFor(option, cell, rotation, floorIndex),
+                        rotation,
+                        StructurePiece.Mirror.NONE);
+                if (matches && required.stream().allMatch(direction ->
+                        GenerationConnectionRules.hasBoundaryConnector(placed, cell, direction))) {
+                    poses.add(new ConnectionPose(option, rotation, Set.copyOf(directions)));
+                }
+            }
+        }
+        return poses;
+    }
+
+    private static ConnectionPose weightedConnectionChoice(
+            RandomSource random,
+            List<ConnectionPose> choices,
+            CorridorSelectionConfig config,
+            int depth) {
+        int totalWeight = choices.stream()
+                .mapToInt(choice -> DepthCatalog.corridorWeight(
+                        choice.option().kind(),
+                        choice.option().weight(config),
+                        depth))
+                .sum();
+        if (totalWeight <= 0) {
+            throw new IllegalArgumentException("connection choices have no positive weights");
+        }
+        int choice = random.nextInt(totalWeight);
+        for (ConnectionPose candidate : choices) {
+            choice -= DepthCatalog.corridorWeight(
+                    candidate.option().kind(),
+                    candidate.option().weight(config),
+                    depth);
+            if (choice < 0) {
+                return candidate;
+            }
+        }
+        return choices.get(choices.size() - 1);
+    }
+
     private static Option baseChoice(
             RandomSource random,
             CorridorSelectionConfig config,
@@ -446,8 +632,11 @@ public final class CorridorCatalog {
             int floorIndex) {
         long cellX = GenerationGrid.blockOriginX(cell);
         long cellZ = GenerationGrid.blockOriginZ(cell);
-        int crossAxisOffset = (GenerationGrid.CELL_SIZE_BLOCKS - width) / 2;
-        int axisOffset = (GenerationGrid.CELL_SIZE_BLOCKS - depth) / 2;
+        // Use the cell's integer center (x/z == 32 for a 64-block cell). This
+        // keeps odd-width corridor centerlines on the same boundary coordinate
+        // as square rooms after rotation.
+        int crossAxisOffset = (GenerationGrid.CELL_SIZE_BLOCKS - width + 1) / 2;
+        int axisOffset = (GenerationGrid.CELL_SIZE_BLOCKS - depth + 1) / 2;
         return switch (rotation) {
             case NONE, CLOCKWISE_180 -> new StructurePiece.BlockPoint(
                     cellX + crossAxisOffset,
@@ -588,5 +777,11 @@ public final class CorridorCatalog {
         private int weight(CorridorSelectionConfig config) {
             return config.weight(kind);
         }
+    }
+
+    private record ConnectionPose(
+            Option option,
+            StructurePiece.Rotation rotation,
+            Set<GenerationGrid.Direction> directions) {
     }
 }

@@ -40,15 +40,28 @@ public final class VerticalCatalog {
     public static final int HEIGHT = FLOOR_SPACING;
     public static final int VERTICAL_CHANCE_PERCENT = 12;
 
-    private static final int CENTER_OFFSET = (GenerationGrid.CELL_SIZE_BLOCKS - WIDTH) / 2;
+    // Odd-width vertical pieces use the cell's integer center coordinate, the
+    // same boundary coordinate used by room and corridor connectors.
+    private static final int CENTER_OFFSET =
+            (GenerationGrid.CELL_SIZE_BLOCKS - WIDTH + 1) / 2;
     private static final ResourceLocation RANDOM_FACTORY_ID =
             ResourceLocation.fromNamespaceAndPath("labrinth", "vertical_selection");
     private static final List<VerticalKind> RANDOM_KINDS = List.of(
             VerticalKind.STAIR_UP,
             VerticalKind.STAIR_DOWN,
-            VerticalKind.LADDER_SHAFT,
-            VerticalKind.DROP_SHAFT,
-            VerticalKind.ELEVATOR_PLACEHOLDER);
+            VerticalKind.LADDER_SHAFT);
+    // Only traversable vertical pieces participate in live selection. The
+    // drop and elevator definitions remain catalogued for later authored
+    // implementations, but their placeholder landings must not appear as
+    // unexplained wheat pits or chain-filled dead shafts in generated worlds.
+    // The stair path begins at the outer wall, then follows the stairwell's
+    // perimeter so the first rise is reachable from the horizontal shell.
+    private static final int[][] STAIR_PATH = {
+            {3, 0}, {3, 1}, {3, 2}, {2, 2},
+            {1, 2}, {1, 3}, {1, 4}, {1, 5},
+            {2, 5}, {3, 5}, {4, 5}, {5, 5},
+            {5, 4}, {5, 3}, {5, 2}, {5, 1}
+    };
     private static final Map<VerticalKind, StructurePiece> DEFINITIONS = createDefinitions();
 
     private VerticalCatalog() {
@@ -116,13 +129,27 @@ public final class VerticalCatalog {
 
     /** Materialize only the selected vertical piece's target-chunk intersection. */
     public static void place(ChunkAccess chunk, Selection selection) {
-        place(chunk, selection, RegionCatalog.standard());
+        place(chunk, selection, RegionCatalog.standard(), null);
     }
 
     public static void place(
             ChunkAccess chunk,
             Selection selection,
             RegionDefinition region) {
+        place(chunk, selection, region, null);
+    }
+
+    /**
+     * Materialize a vertical piece with passages cut only where the same
+     * cell's horizontal piece provides a walkable approach. This keeps wall
+     * openings deterministic and avoids inspecting or loading neighboring
+     * world blocks during generation.
+     */
+    public static void place(
+            ChunkAccess chunk,
+            Selection selection,
+            RegionDefinition region,
+            LabrinthContentCatalog.Placement horizontalPlacement) {
         Objects.requireNonNull(chunk, "chunk");
         Objects.requireNonNull(selection, "selection");
         Objects.requireNonNull(region, "region");
@@ -138,10 +165,9 @@ public final class VerticalCatalog {
         BlockPos.MutableBlockPos blockPos = new BlockPos.MutableBlockPos();
         for (long worldZ = minZ; worldZ < maxZ; worldZ++) {
             for (long worldX = minX; worldX < maxX; worldX++) {
-                // Include the upper-floor air opening deliberately. Horizontal
+                // Include the upper-floor footprint deliberately. Horizontal
                 // room/corridor renderers do not write air, so this explicit
-                // clear prevents a valid vertical connector from being sealed
-                // by the upper floor's generated floor blocks.
+                // pass preserves the stair landing while clearing its opening.
                 for (int worldY = bounds.minY(); worldY <= selection.upperY(); worldY++) {
                     chunk.setBlockState(
                             blockPos.set(
@@ -152,7 +178,8 @@ public final class VerticalCatalog {
                                     Math.toIntExact(worldX),
                                     worldY,
                                     Math.toIntExact(worldZ),
-                                    region),
+                                    region,
+                                    horizontalPlacement),
                             false);
                 }
             }
@@ -187,24 +214,45 @@ public final class VerticalCatalog {
             int worldY,
             int worldZ,
             RegionDefinition region) {
+        return blockStateAt(selection, worldX, worldY, worldZ, region, null);
+    }
+
+    public static BlockState blockStateAt(
+            Selection selection,
+            int worldX,
+            int worldY,
+            int worldZ,
+            RegionDefinition region,
+            LabrinthContentCatalog.Placement horizontalPlacement) {
         Objects.requireNonNull(selection, "selection");
         Objects.requireNonNull(region, "region");
         if (!contains(selection, worldX, worldY, worldZ)) {
             return Blocks.AIR.defaultBlockState();
         }
+        int localX = Math.toIntExact(worldX - selection.piece().origin().x());
+        int localZ = Math.toIntExact(worldZ - selection.piece().origin().z());
         if (worldY == selection.upperY()) {
-            return Blocks.AIR.defaultBlockState();
+            return upperFloorState();
         }
 
-        int localX = Math.toIntExact(worldX - selection.piece().origin().x());
         int localY = worldY - selection.lowerY();
-        int localZ = Math.toIntExact(worldZ - selection.piece().origin().z());
-        if (localX == 0 || localX == WIDTH - 1 || localZ == 0 || localZ == DEPTH - 1) {
-            return Blocks.DEEPSLATE_BRICKS.defaultBlockState();
+        boolean stairPath = selection.kind() == VerticalKind.STAIR_UP
+                || selection.kind() == VerticalKind.STAIR_DOWN;
+        if ((localX == 0 || localX == WIDTH - 1 || localZ == 0 || localZ == DEPTH - 1)
+                && !(stairPath && isStairPath(localY, localX, localZ))) {
+            return hasHorizontalPassage(
+                            horizontalPlacement,
+                            worldX,
+                            worldY,
+                            worldZ,
+                            localX,
+                            localZ)
+                    ? Blocks.AIR.defaultBlockState()
+                    : Blocks.DEEPSLATE_BRICKS.defaultBlockState();
         }
 
         BlockState state = switch (selection.kind()) {
-            case STAIR_UP, STAIR_DOWN -> stairState(selection.kind(), localY, localX, localZ);
+            case STAIR_UP, STAIR_DOWN -> stairState(localY, localX, localZ);
             case LADDER_SHAFT -> localX == WIDTH / 2 && localZ == 1
                     ? Blocks.LADDER.defaultBlockState().setValue(LadderBlock.FACING, Direction.NORTH)
                     : Blocks.AIR.defaultBlockState();
@@ -250,20 +298,101 @@ public final class VerticalCatalog {
         return new Selection(kind, definition, piece, lowerFloor);
     }
 
-    private static BlockState stairState(
-            VerticalKind kind,
-            int localY,
-            int localX,
-            int localZ) {
-        if (localX != WIDTH / 2 || localZ != DEPTH / 2) {
+    private static BlockState stairState(int localY, int localX, int localZ) {
+        if (localY == 0 && !isStairPath(localY, localX, localZ)) {
+            return Blocks.POLISHED_DEEPSLATE.defaultBlockState();
+        }
+        if (!isStairPath(localY, localX, localZ)) {
             return Blocks.AIR.defaultBlockState();
         }
-        Direction facing = kind == VerticalKind.STAIR_UP
-                ? (localY < HEIGHT / 2 ? Direction.SOUTH : Direction.NORTH)
-                : (localY < HEIGHT / 2 ? Direction.NORTH : Direction.SOUTH);
+        Direction ascending = localY < STAIR_PATH.length - 1
+                ? directionBetween(STAIR_PATH[localY], STAIR_PATH[localY + 1])
+                : directionBetween(STAIR_PATH[localY - 1], STAIR_PATH[localY]);
+        // Vanilla's bottom-half stair FACING points toward its high side. Use
+        // the next path position directly so each block can be climbed toward
+        // the upper endpoint instead of presenting its back to the player.
+        Direction facing = ascending;
         return Blocks.POLISHED_DEEPSLATE_STAIRS.defaultBlockState()
                 .setValue(StairBlock.FACING, facing)
                 .setValue(StairBlock.HALF, Half.BOTTOM);
+    }
+
+    private static BlockState upperFloorState() {
+        // The upper boundary is an intentional open shaft. The final stair
+        // ends below this layer and the upper room/corridor floor remains
+        // available immediately outside the seven-block footprint.
+        return Blocks.AIR.defaultBlockState();
+    }
+
+    private static boolean hasHorizontalPassage(
+            LabrinthContentCatalog.Placement horizontalPlacement,
+            int worldX,
+            int worldY,
+            int worldZ,
+            int localX,
+            int localZ) {
+        if (horizontalPlacement == null
+                || worldY < horizontalPlacement.piece().bounds().minY() + 1
+                || worldY >= horizontalPlacement.piece().bounds().minY() + 5) {
+            return false;
+        }
+        if (localZ == 0 && isWalkableHorizontalAir(
+                horizontalPlacement, worldX, worldY, worldZ - 1)) {
+            return true;
+        }
+        if (localX == WIDTH - 1 && isWalkableHorizontalAir(
+                horizontalPlacement, worldX + 1, worldY, worldZ)) {
+            return true;
+        }
+        if (localZ == DEPTH - 1 && isWalkableHorizontalAir(
+                horizontalPlacement, worldX, worldY, worldZ + 1)) {
+            return true;
+        }
+        return localX == 0 && isWalkableHorizontalAir(
+                horizontalPlacement, worldX - 1, worldY, worldZ);
+    }
+
+    private static boolean isWalkableHorizontalAir(
+            LabrinthContentCatalog.Placement horizontalPlacement,
+            int worldX,
+            int worldY,
+            int worldZ) {
+        BlockState passage = LabrinthContentCatalog.blockStateAt(
+                horizontalPlacement,
+                worldX,
+                worldY,
+                worldZ);
+        BlockState floor = LabrinthContentCatalog.blockStateAt(
+                horizontalPlacement,
+                worldX,
+                horizontalPlacement.piece().bounds().minY(),
+                worldZ);
+        return passage.isAir() && !floor.isAir();
+    }
+
+    private static boolean isStairPath(int localY, int localX, int localZ) {
+        return localY >= 0
+                && localY < STAIR_PATH.length
+                && STAIR_PATH[localY][0] == localX
+                && STAIR_PATH[localY][1] == localZ;
+    }
+
+    private static Direction directionBetween(int[] from, int[] to) {
+        int deltaX = Integer.compare(to[0], from[0]);
+        int deltaZ = Integer.compare(to[1], from[1]);
+        if (deltaX > 0) {
+            return Direction.EAST;
+        }
+        if (deltaX < 0) {
+            return Direction.WEST;
+        }
+        if (deltaZ > 0) {
+            return Direction.SOUTH;
+        }
+        if (deltaZ < 0) {
+            return Direction.NORTH;
+        }
+        return Direction.NORTH;
     }
 
     private static BlockState elevatorState(int localY, int localX, int localZ) {

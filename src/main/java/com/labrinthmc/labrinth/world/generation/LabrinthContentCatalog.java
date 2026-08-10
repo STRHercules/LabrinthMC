@@ -131,6 +131,70 @@ public final class LabrinthContentCatalog {
     }
 
     /**
+     * Keep ordinary room variety where possible, but adapt incompatible
+     * choices to the immutable edge graph so an open edge is never accidental.
+     */
+    private static Selection selectForConnections(
+            RandomState randomState,
+            GenerationGrid.Cell cell,
+            CorridorSelectionConfig corridorConfig,
+            int depth,
+            ResourceLocation region,
+            int floorIndex,
+            Set<GenerationGrid.Direction> requiredDirections) {
+        Selection selected = select(randomState, cell, corridorConfig, depth, region, floorIndex);
+        if (supportsConnections(selected, cell, requiredDirections)) {
+            return selected;
+        }
+        return new Selection(
+                CorridorCatalog.selectForConnections(
+                        randomState,
+                        cell,
+                        corridorConfig,
+                        depth,
+                        floorIndex,
+                        region,
+                        requiredDirections),
+                null);
+    }
+
+    private static Selection selectForConnections(
+            long worldSeed,
+            GenerationGrid.Cell cell,
+            CorridorSelectionConfig corridorConfig,
+            int depth,
+            ResourceLocation region,
+            int floorIndex,
+            Set<GenerationGrid.Direction> requiredDirections) {
+        Selection selected = select(worldSeed, cell, corridorConfig, depth, region, floorIndex);
+        if (supportsConnections(selected, cell, requiredDirections)) {
+            return selected;
+        }
+        return new Selection(
+                CorridorCatalog.selectForConnections(
+                        worldSeed,
+                        cell,
+                        corridorConfig,
+                        depth,
+                        floorIndex,
+                        region,
+                        requiredDirections),
+                null);
+    }
+
+    private static boolean supportsConnections(
+            Selection selection,
+            GenerationGrid.Cell cell,
+            Set<GenerationGrid.Direction> requiredDirections) {
+        return selection.connectorDirections().containsAll(requiredDirections)
+                && requiredDirections.stream().allMatch(direction ->
+                        GenerationConnectionRules.hasBoundaryConnector(
+                                selection.piece(),
+                                cell,
+                                direction));
+    }
+
+    /**
      * Select the current cell and its four direct neighbors only. This keeps
      * connection decisions bounded and makes the minimum-corner cell the sole
      * owner of the current piece.
@@ -201,25 +265,29 @@ public final class LabrinthContentCatalog {
             RegionDefinition currentRegion,
             Function<GenerationGrid.Cell, Integer> depthForCell,
             Function<GenerationGrid.Cell, RegionDefinition> regionForCell) {
-        Selection selection = select(
+        Set<GenerationGrid.Direction> requestedConnections =
+                GenerationNeighbors.forCell(randomState, cell).connected();
+        Selection selection = selectForConnections(
                 randomState,
                 cell,
                 corridorConfig,
                 depth,
                 currentRegion.id(),
-                floorIndex);
+                floorIndex,
+                requestedConnections);
         EnumSet<GenerationGrid.Direction> open = EnumSet.noneOf(GenerationGrid.Direction.class);
-        for (GenerationGrid.Direction direction : selection.connectorDirections()) {
+        for (GenerationGrid.Direction direction : requestedConnections) {
             GenerationGrid.Cell neighborCell = cell.neighbor(direction);
             RegionDefinition neighborRegion = regionForCell.apply(neighborCell);
             int neighborDepth = depthForCell.apply(neighborCell);
-            Selection neighbor = select(
+            Selection neighbor = selectForConnections(
                     randomState,
                     neighborCell,
                     corridorConfig,
                     neighborDepth,
                     neighborRegion.id(),
-                    floorIndex);
+                    floorIndex,
+                    GenerationNeighbors.forCell(randomState, neighborCell).connected());
             if (GenerationConnectionRules.compatible(
                     selection.piece(),
                     cell,
@@ -298,25 +366,29 @@ public final class LabrinthContentCatalog {
             RegionDefinition currentRegion,
             Function<GenerationGrid.Cell, Integer> depthForCell,
             Function<GenerationGrid.Cell, RegionDefinition> regionForCell) {
-        Selection selection = select(
+        Set<GenerationGrid.Direction> requestedConnections =
+                GenerationNeighbors.forCell(worldSeed, cell).connected();
+        Selection selection = selectForConnections(
                 worldSeed,
                 cell,
                 corridorConfig,
                 depth,
                 currentRegion.id(),
-                floorIndex);
+                floorIndex,
+                requestedConnections);
         EnumSet<GenerationGrid.Direction> open = EnumSet.noneOf(GenerationGrid.Direction.class);
-        for (GenerationGrid.Direction direction : selection.connectorDirections()) {
+        for (GenerationGrid.Direction direction : requestedConnections) {
             GenerationGrid.Cell neighborCell = cell.neighbor(direction);
             RegionDefinition neighborRegion = regionForCell.apply(neighborCell);
             int neighborDepth = depthForCell.apply(neighborCell);
-            Selection neighbor = select(
+            Selection neighbor = selectForConnections(
                     worldSeed,
                     neighborCell,
                     corridorConfig,
                     neighborDepth,
                     neighborRegion.id(),
-                    floorIndex);
+                    floorIndex,
+                    GenerationNeighbors.forCell(worldSeed, neighborCell).connected());
             if (GenerationConnectionRules.compatible(
                     selection.piece(),
                     cell,
@@ -411,7 +483,8 @@ public final class LabrinthContentCatalog {
         if (state.isAir()
                 && worldX >= bounds.minBlockX() && worldX < bounds.maxBlockXExclusive()
                 && worldZ >= bounds.minBlockZ() && worldZ < bounds.maxBlockZExclusive()
-                && worldY >= bounds.minY() && worldY < bounds.maxYExclusive()) {
+                && worldY >= bounds.minY() && worldY < bounds.maxYExclusive()
+                && hasWalkableFloor(placement, worldX, bounds.minY(), worldZ)) {
             int localX = Math.toIntExact(worldX - placement.piece().origin().x());
             int localY = worldY - placement.piece().origin().y();
             int localZ = Math.toIntExact(worldZ - placement.piece().origin().z());
@@ -426,6 +499,32 @@ public final class LabrinthContentCatalog {
                     worldZ);
         }
         return state;
+    }
+
+    /** Keep generic dressing on authored walkable geometry, never empty shell space. */
+    private static boolean hasWalkableFloor(
+            Placement placement,
+            int worldX,
+            int floorY,
+            int worldZ) {
+        BlockState floor = placement.selection().isRoom()
+                ? RoomCatalog.blockStateAt(
+                        new RoomCatalog.Placement(
+                                placement.selection().room(),
+                                placement.openDirections()),
+                        worldX,
+                        floorY,
+                        worldZ,
+                        placement.region())
+                : CorridorCatalog.blockStateAt(
+                        new CorridorCatalog.Placement(
+                                placement.selection().corridor(),
+                                placement.openDirections()),
+                        worldX,
+                        floorY,
+                        worldZ,
+                        placement.region());
+        return !floor.isAir();
     }
 
     private static void placeDecorations(ChunkAccess chunk, Placement placement) {

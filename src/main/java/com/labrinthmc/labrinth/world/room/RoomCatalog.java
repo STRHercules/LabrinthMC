@@ -1,6 +1,7 @@
 package com.labrinthmc.labrinth.world.room;
 
 import com.labrinthmc.labrinth.world.connector.Connector;
+import com.labrinthmc.labrinth.world.generation.GenerationConnectionRules;
 import com.labrinthmc.labrinth.world.generation.GenerationGrid;
 import com.labrinthmc.labrinth.world.generation.GenerationSeeds;
 import com.labrinthmc.labrinth.world.generation.DepthCatalog;
@@ -349,6 +350,7 @@ public final class RoomCatalog {
         return local == null
                 ? Blocks.AIR.defaultBlockState()
                 : blockStateForLocal(
+                        placed,
                         definition,
                         local.x(),
                         local.y(),
@@ -449,6 +451,7 @@ public final class RoomCatalog {
     }
 
     private static BlockState blockStateForLocal(
+            PlacedStructurePiece placed,
             RoomDefinition definition,
             int localX,
             int localY,
@@ -456,15 +459,25 @@ public final class RoomCatalog {
             StructurePiece.Rotation rotation,
             Set<GenerationGrid.Direction> openDirections,
             RegionDefinition region) {
+        GenerationConnectionRules.LocalCenter center =
+                GenerationConnectionRules.localCellCenter(placed);
         BlockState state;
         if (localY == 0) {
             state = floorState(definition.interiorStyle(), localX, localZ);
         } else if (localY == definition.piece().height() - 1) {
-            state = isLight(localX, localZ)
+            state = isLight(localX, localZ, center)
                     ? Blocks.SEA_LANTERN.defaultBlockState()
                     : Blocks.DEEPSLATE_TILES.defaultBlockState();
         } else if (isBoundary(localX, localZ)
-                && !isOpenFaceCell(definition, localX, localZ, rotation, openDirections)) {
+                && !isOpenFaceCell(
+                        placed,
+                        definition,
+                        localX,
+                        localY,
+                        localZ,
+                        rotation,
+                        openDirections,
+                        center)) {
             state = Blocks.DEEPSLATE_BRICKS.defaultBlockState();
         } else if (isSpawnMarker(definition, localX, localY, localZ)) {
             state = Blocks.SOUL_TORCH.defaultBlockState();
@@ -507,9 +520,12 @@ public final class RoomCatalog {
                 : Blocks.POLISHED_DEEPSLATE.defaultBlockState();
     }
 
-    private static boolean isLight(int localX, int localZ) {
-        return (localX == CELL_SIZE / 2 && localZ % 8 == 4)
-                || (localZ == CELL_SIZE / 2 && localX % 8 == 4);
+    private static boolean isLight(
+            int localX,
+            int localZ,
+            GenerationConnectionRules.LocalCenter center) {
+        return (localX == center.x() && localZ % 8 == 4)
+                || (localZ == center.z() && localX % 8 == 4);
     }
 
     private static boolean isBoundary(int localX, int localZ) {
@@ -518,11 +534,20 @@ public final class RoomCatalog {
     }
 
     private static boolean isOpenFaceCell(
+            PlacedStructurePiece placed,
             RoomDefinition definition,
             int localX,
+            int localY,
             int localZ,
             StructurePiece.Rotation rotation,
-            Set<GenerationGrid.Direction> openDirections) {
+            Set<GenerationGrid.Direction> openDirections,
+            GenerationConnectionRules.LocalCenter center) {
+        // Match the four-block vertical aperture declared by every horizontal
+        // connector. Keeping the ceiling and floor in the shell prevents a
+        // room from exposing a taller hole than the hallway can actually use.
+        if (localY < 1 || localY >= 1 + APERTURE_HEIGHT) {
+            return false;
+        }
         for (GenerationGrid.Direction localDirection : GenerationGrid.Direction.values()) {
             if (!hasBaseConnector(definition, localDirection)) {
                 continue;
@@ -538,7 +563,11 @@ public final class RoomCatalog {
             }
             int across = localDirection == GenerationGrid.Direction.NORTH
                     || localDirection == GenerationGrid.Direction.SOUTH ? localX : localZ;
-            if (Math.abs(across - (CELL_SIZE - 1) / 2) <= APERTURE_WIDTH / 2) {
+            int apertureCenter = localDirection == GenerationGrid.Direction.NORTH
+                    || localDirection == GenerationGrid.Direction.SOUTH
+                    ? center.x()
+                    : center.z();
+            if (Math.abs(across - apertureCenter) <= APERTURE_WIDTH / 2) {
                 return true;
             }
         }
@@ -753,7 +782,7 @@ public final class RoomCatalog {
     private static Connector connector(GenerationGrid.Direction direction) {
         return switch (direction) {
             case NORTH -> new Connector(
-                    new Connector.Position((CELL_SIZE - 1) / 2, 1, 0),
+                    new Connector.Position(CELL_SIZE / 2, 1, 0),
                     Connector.Direction.NORTH,
                     Connector.Type.STANDARD,
                     APERTURE_WIDTH,
@@ -761,7 +790,7 @@ public final class RoomCatalog {
                     StructurePiece.Rotation.NONE,
                     true);
             case EAST -> new Connector(
-                    new Connector.Position(CELL_SIZE, 1, (CELL_SIZE - 1) / 2),
+                    new Connector.Position(CELL_SIZE, 1, CELL_SIZE / 2),
                     Connector.Direction.EAST,
                     Connector.Type.STANDARD,
                     APERTURE_WIDTH,
@@ -769,7 +798,7 @@ public final class RoomCatalog {
                     StructurePiece.Rotation.NONE,
                     true);
             case SOUTH -> new Connector(
-                    new Connector.Position((CELL_SIZE - 1) / 2, 1, CELL_SIZE),
+                    new Connector.Position(CELL_SIZE / 2, 1, CELL_SIZE),
                     Connector.Direction.SOUTH,
                     Connector.Type.STANDARD,
                     APERTURE_WIDTH,
@@ -777,7 +806,7 @@ public final class RoomCatalog {
                     StructurePiece.Rotation.NONE,
                     true);
             case WEST -> new Connector(
-                    new Connector.Position(0, 1, (CELL_SIZE - 1) / 2),
+                    new Connector.Position(0, 1, CELL_SIZE / 2),
                     Connector.Direction.WEST,
                     Connector.Type.STANDARD,
                     APERTURE_WIDTH,

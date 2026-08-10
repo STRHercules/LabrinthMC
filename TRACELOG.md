@@ -1,3 +1,223 @@
+## 0.10.6 - Traversable Perimeter Stairwells
+
+### Task
+Remove unexplained wheat-bottom and chain-filled vertical placeholders,
+start stairways at the stairwell perimeter, extend them through the complete
+floor boundary, and open stairwell walls where the same cell's room or
+corridor provides a real approach.
+
+### Changes
+- Disabled the unfinished drop-shaft and elevator-placeholder variants from
+  live random vertical selection while retaining their definitions for later
+  authored implementations.
+- Replaced the center-start stair path with a perimeter-following path whose
+  first step is on the outer stairwell edge and whose final step reaches the
+  upper boundary.
+- Passed the deterministic same-cell horizontal placement into vertical
+  materialization and removed only wall blocks adjacent to walkable horizontal
+  air at the lower-floor doorway height.
+- Added self-check coverage proving live selection excludes unfinished
+  placeholder shafts.
+- Incremented the mod version from `0.10.5` to `0.10.6`.
+
+### Implementation
+Vertical selection now exposes only `STAIR_UP`, `STAIR_DOWN`, and
+`LADDER_SHAFT` in generated worlds; drop and elevator pieces remain in the
+catalog but are not placed until their landing and passage contracts are
+implemented. Stair positions are deterministic and contiguous from local
+`(3, 0)` through the perimeter path to the upper endpoint. During chunk
+materialization, the generator reuses the cell-owned horizontal placement and
+probes its authored block function at each side of the seven-block shaft. A
+wall block becomes air only when the adjacent horizontal position is air and
+has a generated floor, so unrelated shell walls remain intact.
+
+### Rationale
+The wheat and chain shafts were placeholder visuals, not complete player
+connections, so allowing them into live generation created unexplained holes
+and sealed vertical features. A perimeter-first stair path gives the player a
+reachable lower entry and a continuous rise. Reusing the horizontal cell
+decision keeps wall openings deterministic, chunk-safe, and aligned with the
+architecture's no-world-scan generation rule.
+
+### Validation
+- `gradlew.bat build --console=plain --no-daemon` passed.
+- Generation architecture self-check passed as part of the build.
+- Test task passed as part of the build.
+- `git diff --check` passed before handoff.
+- No files under `References/` or `TheLabrinth/` were modified.
+- Manual fresh-world visual smoke remains required for perimeter stair entry,
+  upper-floor traversal, and room/corridor-to-stairwell passages.
+
+## 0.10.5 - Canonical Connection Apertures and Open Stairwells
+
+### Task
+Repair the remaining room and hallway offsets and gaps, replace non-solid
+lantern lighting that punched through shells, correct backwards stairs, and
+reopen stairwell tops while preserving the architecture-defined cell grid.
+
+### Changes
+- Normalized placed horizontal connector endpoints to the owning 64-block
+  cell center and rejected off-center boundary endpoints.
+- Derived rotated room and corridor aperture/path centers from the canonical
+  world center instead of hardcoded local coordinates.
+- Replaced generated lantern-family light states with solid glowstone blocks.
+- Oriented switchback stairs toward their ascending path and left the full
+  seven-by-seven upper stairwell footprint open.
+- Added all-rotation regression coverage for odd-width straight-corridor
+  boundary endpoints.
+- Incremented the mod version from `0.10.4` to `0.10.5`.
+
+### Implementation
+`PlacedStructurePiece` corrects the cross-axis coordinate after rotation while
+leaving non-canonical spawn-margin pieces untouched. Shared connection rules
+now require the exact cell boundary and integer cell-center coordinate. Room
+and routed-corridor renderers inverse-map that same canonical center before
+materializing their apertures and path centerlines. Region palette application
+converts sea lanterns, lanterns, soul lanterns, end rods, and existing light
+blocks to glowstone so lighting cannot remove a full structural block.
+Vertical stair blocks use the next switchback direction as their vanilla stair
+facing, and the upper boundary pass writes air across the complete shaft
+footprint so the opening reaches the floor module above.
+
+### Rationale
+The previous pass aligned connector metadata but could still render the
+opening one block away after an even-sized piece rotated. Keeping endpoint
+validation and block geometry on one canonical coordinate removes that split
+contract without neighbor lookups or chunk-order state. Solid light blocks
+preserve the shell, and an open upper footprint gives the traversable stair a
+real connection into the next room or corridor.
+
+### Validation
+- `gradlew.bat build --console=plain --no-daemon` passed.
+- Generation architecture self-check passed as part of the build.
+- Test task passed as part of the build.
+- `git diff --check` passed before handoff.
+- No files under `References/` or `TheLabrinth/` were modified.
+- Manual fresh-world visual smoke remains required for doorway seams, stair
+  traversal, open stairwell transitions, and ceiling/floor lighting.
+
+## 0.10.4 - Connector and Vertical Geometry Refinement
+
+### Task
+Resolve the remaining in-game generation defects: lateral and vertical
+connector drift, hallway-to-room gaps, unfinished stair tops, incorrect stair
+facing, and ceiling holes caused by light failures.
+
+### Changes
+- Restricted room wall openings to the declared four-block connector height.
+- Kept failed ceiling lights as regional ceiling blocks instead of air.
+- Centered vertical pieces on the same integer cell coordinate as horizontal
+  room and corridor connectors.
+- Reworked the switchback stair path so both stair selections use the same
+  ascending geometry and vanilla-compatible facing.
+- Added a centered three-by-three upper stair opening and restored the upper
+  floor around it with the active region palette.
+- Extended the framework self-check with room aperture and vertical-center
+  assertions.
+- Incremented the mod version from `0.10.3` to `0.10.4`.
+
+### Implementation
+Horizontal room openings now evaluate the local Y coordinate against the
+connector profile before removing boundary blocks, so their floor, ceiling,
+and doorway height agree with corridor shells. Vertical stair placement uses a
+single coordinate-derived path, derives each stair's facing from the next rise,
+and treats the upper boundary as a small opening surrounded by generated floor.
+Palette lighting failures preserve the ceiling at the piece's top layer.
+
+### Rationale
+The prior geometry contracts agreed on connector endpoints but not always on
+the blocks materialized around those endpoints. Aligning the aperture height,
+integer center, and upper landing removes the visible seams without adding
+neighbor-chunk lookups or order-dependent generation. Preserving a solid
+ceiling during a lighting outage prevents visual decoration state from
+destroying structural geometry.
+
+### Validation
+- `gradlew.bat build --console=plain --no-daemon` passed.
+- Generation architecture self-check passed as part of the build.
+- `git diff --check` passed before handoff.
+- No files under `References/` or `TheLabrinth/` were modified.
+- Manual fresh-world visual smoke remains required for stair traversal,
+  doorway seams, and ceiling-light behavior.
+
+## 0.10.3 - Connected Layout and Traversable Dressing
+
+### Task
+Repair the in-game generation defects reported from the first exploration
+pass: disconnected corridors, misplaced decoration, and unusable stacked
+stairways, while preserving the deterministic architecture in
+`ARCHITECTURE.md`.
+
+### Changes
+- Added a deterministic parent-edge backbone to the cell connection graph,
+  with seed-derived optional edges retained for loops.
+- Made room and corridor selection honor every required shared edge and fixed
+  rotated connector centers on the 64-block cell center.
+- Aligned corridor centerlines, room openings, landmark openings, and landmark
+  connectors to the same boundary coordinate.
+- Restricted generic decoration to sparse, low-profile dressing over generated
+  floor cells instead of empty corridor shell space.
+- Replaced vertical center-column stairs and landmark center-column stairs with
+  bounded switchback paths.
+- Added self-check coverage for the connection graph, exact placement edges,
+  and the updated corridor footprint alignment.
+
+### Implementation
+Connection ownership remains coordinate-derived and bounded to the current
+cell and direct neighbors. Required edges first select a compatible corridor
+pose, then validate transformed connector profiles and shared boundary
+positions before exposing the doorway. Landmark shells use the same edge graph
+and remain sector-owned. Decoration is applied only after the authored piece
+has confirmed a floor at the candidate position.
+
+### Rationale
+Independent edge coin flips and independently rotated even-sized pieces made
+valid-looking layouts become disconnected at runtime. The shared parent edge
+ensures reachability, while the common integer center removes the one-block
+rotation drift that prevented connector matching. Sparse floor-aware dressing
+keeps visual themes without turning unused bounds into terrain.
+
+### Validation
+- `gradlew.bat generationSelfCheck --console=plain --no-daemon` passed.
+- `gradlew.bat build --console=plain --no-daemon` passed, including the
+  self-check and test task.
+- `git diff --check` passed.
+- No files under `References/` or `TheLabrinth/` were modified.
+- Manual fresh-world in-game smoke remains the final visual handoff check.
+
+## 0.10.2 - README Visual Documentation
+
+### Task
+Insert the available pictures into the README where they best explain the
+project, and remove decorative emoji from the README.
+
+### Changes
+- Added relative Markdown image embeds for every picture in `Pictures/`.
+- Placed visual references beside the introduction, generation, room, region,
+  exploration, landmark, loot, navigation, architecture, and validation
+  sections.
+- Removed emoji from README headings and normalized image paths to forward
+  slashes for portable Markdown rendering.
+- Incremented the mod version from `0.10.1` to `0.10.2`.
+
+### Implementation
+Each image is embedded once using a descriptive alt label and a relative path
+under `Pictures/`. The existing README prose and section order remain intact;
+only visual placement, heading labels, required project metadata, and task
+documentation were updated.
+
+### Rationale
+Contextual image placement makes the diagrams useful while reading the related
+concept instead of separating them into an unscoped gallery. Removing emoji
+keeps the README's visual language consistent with its technical documentation.
+
+### Validation
+- Confirmed all files in `Pictures/` have exactly one README image embed.
+- Confirmed README headings contain no decorative emoji.
+- `gradlew.bat build --console=plain --no-daemon` passed.
+- `git diff --check` passed.
+- No files under `References/` or `TheLabrinth/` were modified.
+
 ## 0.10.1 - Phase 9/10 Selector Enforcement
 
 ### Task

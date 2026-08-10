@@ -104,6 +104,15 @@ public final class GenerationArchitectureSelfCheck {
                             == second.hasConnection(direction.opposite()),
                     "neighbor edge is symmetric for " + direction);
         }
+        for (int x = -8; x <= 8; x++) {
+            for (int z = -8; z <= 8; z++) {
+                GenerationGrid.Cell candidate = new GenerationGrid.Cell(x, z);
+                if (x != 0 || z != 0) {
+                    require(!GenerationNeighbors.forCell(worldSeed, candidate).connected().isEmpty(),
+                            "every non-origin cell has a deterministic route toward the core");
+                }
+            }
+        }
     }
 
     private static void checkGenerationOrderIndependence() {
@@ -423,9 +432,9 @@ public final class GenerationArchitectureSelfCheck {
                 cell,
                 StructurePiece.Rotation.NONE);
         require(straight.bounds().equals(new GenerationGrid.Bounds(
-                        156,
+                        157,
                         -192,
-                        163,
+                        164,
                         -128,
                         StraightCorridor.FLOOR_Y,
                         StraightCorridor.FLOOR_Y + StraightCorridor.HEIGHT)),
@@ -436,15 +445,27 @@ public final class GenerationArchitectureSelfCheck {
                 StructurePiece.Rotation.CLOCKWISE_90);
         require(rotated.bounds().equals(new GenerationGrid.Bounds(
                         128,
-                        -164,
+                        -163,
                         192,
-                        -157,
+                        -156,
                         StraightCorridor.FLOOR_Y,
                         StraightCorridor.FLOOR_Y + StraightCorridor.HEIGHT)),
                 "rotated corridor swaps its horizontal footprint");
         require(rotated.connector(0).direction() == Connector.Direction.EAST
                         && rotated.connector(1).direction() == Connector.Direction.WEST,
                 "rotated corridor connectors follow its axis");
+        for (StructurePiece.Rotation rotation : StructurePiece.Rotation.values()) {
+            PlacedStructurePiece aligned = StraightCorridor.longPlacedAt(cell, rotation);
+            Set<GenerationGrid.Direction> axis = rotation == StructurePiece.Rotation.NONE
+                    || rotation == StructurePiece.Rotation.CLOCKWISE_180
+                    ? Set.of(GenerationGrid.Direction.NORTH, GenerationGrid.Direction.SOUTH)
+                    : Set.of(GenerationGrid.Direction.EAST, GenerationGrid.Direction.WEST);
+            for (GenerationGrid.Direction direction : axis) {
+                require(GenerationConnectionRules.hasBoundaryConnector(aligned, cell, direction),
+                        "rotated odd-width corridor endpoint stays on the canonical boundary: "
+                                + rotation + " " + direction);
+            }
+        }
 
         StructurePiece shortDefinition = StraightCorridor.shortDefinition();
         require(shortDefinition != definition
@@ -461,9 +482,9 @@ public final class GenerationArchitectureSelfCheck {
                 cell,
                 StructurePiece.Rotation.NONE);
         require(shortStraight.bounds().equals(new GenerationGrid.Bounds(
-                        156,
+                        157,
                         -176,
-                        163,
+                        164,
                         -144,
                         StraightCorridor.FLOOR_Y,
                         StraightCorridor.FLOOR_Y + StraightCorridor.HEIGHT)),
@@ -473,9 +494,9 @@ public final class GenerationArchitectureSelfCheck {
                 StructurePiece.Rotation.CLOCKWISE_90);
         require(rotatedShort.bounds().equals(new GenerationGrid.Bounds(
                         144,
-                        -164,
+                        -163,
                         176,
-                        -157,
+                        -156,
                         StraightCorridor.FLOOR_Y,
                         StraightCorridor.FLOOR_Y + StraightCorridor.HEIGHT)),
                 "rotated short straight swaps its centered footprint");
@@ -496,9 +517,9 @@ public final class GenerationArchitectureSelfCheck {
                 cell,
                 StructurePiece.Rotation.NONE);
         require(mediumStraight.bounds().equals(new GenerationGrid.Bounds(
-                        156,
+                        157,
                         -184,
-                        163,
+                        164,
                         -136,
                         StraightCorridor.FLOOR_Y,
                         StraightCorridor.FLOOR_Y + StraightCorridor.HEIGHT)),
@@ -508,9 +529,9 @@ public final class GenerationArchitectureSelfCheck {
                 StructurePiece.Rotation.CLOCKWISE_90);
         require(rotatedMedium.bounds().equals(new GenerationGrid.Bounds(
                         136,
-                        -164,
+                        -163,
                         184,
-                        -157,
+                        -156,
                         StraightCorridor.FLOOR_Y,
                         StraightCorridor.FLOOR_Y + StraightCorridor.HEIGHT)),
                 "rotated medium straight swaps its centered footprint");
@@ -532,9 +553,9 @@ public final class GenerationArchitectureSelfCheck {
                 cell,
                 StructurePiece.Rotation.NONE);
         require(longStraight.bounds().equals(new GenerationGrid.Bounds(
-                        156,
+                        157,
                         -192,
-                        163,
+                        164,
                         -128,
                         StraightCorridor.FLOOR_Y,
                         StraightCorridor.FLOOR_Y + StraightCorridor.HEIGHT)),
@@ -712,6 +733,11 @@ public final class GenerationArchitectureSelfCheck {
                             && definition.piece().allowedRotations().size() == 4
                             && definition.piece().allowedRegions().contains(RoomCatalog.STANDARD_REGION),
                     "room metadata contains bounded connectors and rotation/region rules");
+            require(definition.piece().connectors().stream().allMatch(connector ->
+                            connector.position().y() == 1
+                                    && connector.width() == RoomCatalog.APERTURE_WIDTH
+                                    && connector.height() == RoomCatalog.APERTURE_HEIGHT),
+                    "room connectors share the hallway aperture profile");
             foundSpawnMarker |= !definition.spawnMarkers().isEmpty();
             for (RoomDefinition.SpawnMarker marker : definition.spawnMarkers()) {
                 require(marker.x() >= 0 && marker.x() < definition.piece().width()
@@ -777,6 +803,29 @@ public final class GenerationArchitectureSelfCheck {
         require(foundRoom && foundCorridor,
                 "live content catalog selects both rooms and corridors");
 
+        RoomDefinition crossRoom = RoomCatalog.definition(RoomKind.CROSS_ROOM);
+        for (StructurePiece.Rotation rotation : StructurePiece.Rotation.values()) {
+            PlacedStructurePiece rotatedRoom = crossRoom.piece().placedAt(
+                    new StructurePiece.BlockPoint(0, RoomCatalog.FLOOR_Y, 0),
+                    rotation,
+                    StructurePiece.Mirror.NONE);
+            GenerationConnectionRules.LocalCenter localCenter =
+                    GenerationConnectionRules.localCellCenter(rotatedRoom);
+            int expectedX = rotation == StructurePiece.Rotation.NONE
+                    || rotation == StructurePiece.Rotation.CLOCKWISE_90 ? 32 : 31;
+            int expectedZ = rotation == StructurePiece.Rotation.NONE
+                    || rotation == StructurePiece.Rotation.COUNTERCLOCKWISE_90 ? 32 : 31;
+            require(localCenter.x() == expectedX && localCenter.z() == expectedZ,
+                    "rotated room geometry maps back to the canonical cell center");
+            for (GenerationGrid.Direction direction : GenerationGrid.Direction.values()) {
+                require(GenerationConnectionRules.hasBoundaryConnector(
+                                rotatedRoom,
+                                new GenerationGrid.Cell(0, 0),
+                                direction),
+                        "rotated room connector remains centered on " + direction);
+            }
+        }
+
         LabrinthContentCatalog.Selection origin = LabrinthContentCatalog.select(
                 worldSeed,
                 new GenerationGrid.Cell(0, 0),
@@ -793,6 +842,19 @@ public final class GenerationArchitectureSelfCheck {
                         worldSeed,
                         currentCell,
                         corridorConfig);
+                require(placement.openDirections().equals(
+                                GenerationNeighbors.forCell(worldSeed, currentCell).connected()),
+                        "content placement honors every shared edge decision at "
+                                + currentCell + ": expected "
+                                + GenerationNeighbors.forCell(worldSeed, currentCell).connected()
+                                + ", actual " + placement.openDirections());
+                for (GenerationGrid.Direction direction : placement.openDirections()) {
+                    require(GenerationConnectionRules.hasBoundaryConnector(
+                                    placement.selection().piece(),
+                                    currentCell,
+                                    direction),
+                            "content edge is on the owning cell boundary");
+                }
                 for (GenerationGrid.Direction direction : GenerationGrid.Direction.values()) {
                     LabrinthContentCatalog.Placement neighbor = LabrinthContentCatalog.placement(
                             worldSeed,
@@ -800,7 +862,12 @@ public final class GenerationArchitectureSelfCheck {
                             corridorConfig);
                     require(placement.openDirections().contains(direction)
                                     == neighbor.openDirections().contains(direction.opposite()),
-                            "mixed content openings are symmetric for " + direction);
+                            "mixed content openings are symmetric for " + direction
+                                    + " at " + currentCell
+                                    + " current=" + placement.selection().id()
+                                    + " neighbor=" + neighbor.selection().id()
+                                    + " currentConnectors=" + placement.selection().piece().connectors()
+                                    + " neighborConnectors=" + neighbor.selection().piece().connectors());
                 }
             }
         }
@@ -863,6 +930,7 @@ public final class GenerationArchitectureSelfCheck {
 
     private static void checkVerticalCatalogSystem() {
         long worldSeed = 0x0A0B0C0D0E0F1011L;
+        GenerationGrid.Cell originCell = new GenerationGrid.Cell(0, 0);
         GenerationGrid.Cell farCell = new GenerationGrid.Cell(1_024, -2_048);
         require(VerticalCatalog.definitions().size() == 5,
                 "vertical catalog covers stairs, ladders, drops, and elevator placeholder");
@@ -887,14 +955,29 @@ public final class GenerationArchitectureSelfCheck {
                                     && connector.position().y() == VerticalCatalog.HEIGHT),
                     "vertical definition endpoints align to both floor faces");
         }
+        Set<VerticalCatalog.VerticalKind> liveKinds = Set.of(
+                VerticalCatalog.VerticalKind.NONE,
+                VerticalCatalog.VerticalKind.STAIR_UP,
+                VerticalCatalog.VerticalKind.STAIR_DOWN,
+                VerticalCatalog.VerticalKind.LADDER_SHAFT);
+        for (int x = -8; x <= 8; x++) {
+            for (int z = -8; z <= 8; z++) {
+                VerticalCatalog.Selection selected = VerticalCatalog.select(
+                        worldSeed,
+                        new GenerationGrid.Cell(x, z),
+                        0);
+                require(liveKinds.contains(selected.kind()),
+                        "live vertical selection excludes unfinished placeholder shafts");
+            }
+        }
 
         VerticalCatalog.Selection lowerOrigin = VerticalCatalog.select(
                 worldSeed,
-                new GenerationGrid.Cell(0, 0),
+                originCell,
                 VerticalCatalog.MIN_FLOOR);
         VerticalCatalog.Selection upperOrigin = VerticalCatalog.select(
                 worldSeed,
-                new GenerationGrid.Cell(0, 0),
+                originCell,
                 0);
         require(lowerOrigin.kind() == VerticalCatalog.VerticalKind.STAIR_DOWN
                         && upperOrigin.kind() == VerticalCatalog.VerticalKind.STAIR_UP,
@@ -902,6 +985,17 @@ public final class GenerationArchitectureSelfCheck {
         require(GenerationConstraints.LABRINTH.contains(lowerOrigin.piece().bounds())
                         && GenerationConstraints.LABRINTH.contains(upperOrigin.piece().bounds()),
                 "vertical links respect minimum and maximum Y");
+        long expectedVerticalX = GenerationGrid.blockOriginX(originCell)
+                + (GenerationGrid.CELL_SIZE_BLOCKS - VerticalCatalog.WIDTH + 1) / 2;
+        long expectedVerticalZ = GenerationGrid.blockOriginZ(originCell)
+                + (GenerationGrid.CELL_SIZE_BLOCKS - VerticalCatalog.DEPTH + 1) / 2;
+        require(lowerOrigin.piece().origin().x() == expectedVerticalX
+                        && lowerOrigin.piece().origin().z() == expectedVerticalZ
+                        && lowerOrigin.piece().connector(0).position().x()
+                                == GenerationGrid.blockOriginX(originCell) + GenerationGrid.CELL_SIZE_BLOCKS / 2
+                        && lowerOrigin.piece().connector(0).position().z()
+                                == GenerationGrid.blockOriginZ(originCell) + GenerationGrid.CELL_SIZE_BLOCKS / 2,
+                "vertical pieces share the canonical cell center with horizontal connectors");
         require(!lowerOrigin.piece().bounds().intersects(upperOrigin.piece().bounds()),
                 "adjacent vertical boundaries meet without overlapping");
         require(VerticalCatalog.contains(

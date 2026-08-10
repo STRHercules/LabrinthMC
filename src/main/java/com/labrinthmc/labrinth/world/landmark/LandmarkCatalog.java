@@ -38,8 +38,6 @@ public final class LandmarkCatalog {
 
     private static final ResourceLocation RANDOM_FACTORY_ID =
             ResourceLocation.fromNamespaceAndPath("labrinth", "landmark_selection");
-    private static final ResourceLocation CONNECTION_FACTORY_ID =
-            ResourceLocation.fromNamespaceAndPath("labrinth", "landmark_connections");
     private static final List<LandmarkDefinition> DEFINITIONS = List.of(
             create(
                     "grand_hall",
@@ -304,7 +302,15 @@ public final class LandmarkCatalog {
         int width = instance.definition().piece().width();
         int depth = instance.definition().piece().depth();
         int height = instance.definition().piece().height();
-        BlockState base = baseState(instance.definition().style(), localX, localY, localZ, width, depth, height);
+        BlockState base = baseState(
+                instance.definition().style(),
+                localX,
+                localY,
+                localZ,
+                width,
+                depth,
+                height,
+                instance.openConnections());
         if (base.isAir()) {
             return instance.region().decorationState(
                     base,
@@ -361,7 +367,8 @@ public final class LandmarkCatalog {
                 option.floorIndex(),
                 option.depth(),
                 option.region(),
-                piece));
+                piece,
+                toOpenConnections(availableConnections)));
     }
 
     private static Option weightedChoice(RandomSource random, List<Option> options) {
@@ -385,7 +392,8 @@ public final class LandmarkCatalog {
             int localZ,
             int width,
             int depth,
-            int height) {
+            int height,
+            Set<Connector.Direction> openConnections) {
         boolean boundary = localX == 0 || localX == width - 1 || localZ == 0 || localZ == depth - 1;
         if (localY == 0) {
             return floor(style);
@@ -393,13 +401,56 @@ public final class LandmarkCatalog {
         if (localY == height - 1) {
             return ceiling(style);
         }
+        if (boundary && isOpenFaceCell(
+                localX,
+                localY,
+                localZ,
+                width,
+                depth,
+                openConnections)) {
+            return Blocks.AIR.defaultBlockState();
+        }
         if (boundary) {
             return wall(style);
+        }
+        if (style == LandmarkDefinition.Style.CENTRAL_STAIRWELL) {
+            return detail(style, localX, localY, localZ, width, depth, height);
         }
         if (isLight(style, localX, localY, localZ, width, depth, height)) {
             return light(style);
         }
         return detail(style, localX, localY, localZ, width, depth, height);
+    }
+
+    private static boolean isOpenFaceCell(
+            int localX,
+            int localY,
+            int localZ,
+            int width,
+            int depth,
+            Set<Connector.Direction> openConnections) {
+        if (localY < 1 || localY > 4) {
+            return false;
+        }
+        for (Connector.Direction direction : openConnections) {
+            int center = direction == Connector.Direction.NORTH
+                    || direction == Connector.Direction.SOUTH
+                    ? width / 2
+                    : depth / 2;
+            int across = direction == Connector.Direction.NORTH
+                    || direction == Connector.Direction.SOUTH ? localX : localZ;
+            boolean atFace = switch (direction) {
+                case NORTH -> localZ == 0;
+                case EAST -> localX == width - 1;
+                case SOUTH -> localZ == depth - 1;
+                case WEST -> localX == 0;
+                case UP, DOWN -> false;
+            };
+            if (atFace && Math.abs(across - center) <= 2) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static BlockState detail(
@@ -413,11 +464,7 @@ public final class LandmarkCatalog {
         int centerX = width / 2;
         int centerZ = depth / 2;
         return switch (style) {
-            case CENTRAL_STAIRWELL -> x == centerX && z == centerZ
-                    ? Blocks.POLISHED_DEEPSLATE_STAIRS.defaultBlockState()
-                            .setValue(StairBlock.FACING, y < height / 2 ? Direction.SOUTH : Direction.NORTH)
-                            .setValue(StairBlock.HALF, Half.BOTTOM)
-                    : Blocks.AIR.defaultBlockState();
+            case CENTRAL_STAIRWELL -> centralStairState(x, y, z, width, depth, height);
             case MASSIVE_STORAGE_COMPLEX -> y == 2
                     && (x == 4 || x == width - 5)
                     && z % 8 == 0
@@ -431,7 +478,8 @@ public final class LandmarkCatalog {
             case FLOODED_ATRIUM -> y <= 2
                     ? Blocks.WATER.defaultBlockState()
                     : Blocks.AIR.defaultBlockState();
-            case ABANDONED_STATION -> Math.floorMod(x * 31L + y * 17L + z * 13L, 23L) == 0
+            case ABANDONED_STATION -> y == 1
+                    && Math.floorMod(x * 31L + z * 13L, 67L) == 0
                     ? Blocks.GRAVEL.defaultBlockState()
                     : Blocks.AIR.defaultBlockState();
             case ANCIENT_CHAMBER -> x % 16 == 4 && z % 16 == 4 && y < height - 2
@@ -444,6 +492,59 @@ public final class LandmarkCatalog {
                     ? Blocks.POLISHED_DEEPSLATE.defaultBlockState()
                     : Blocks.AIR.defaultBlockState();
         };
+    }
+
+    private static BlockState centralStairState(
+            int x,
+            int y,
+            int z,
+            int width,
+            int depth,
+            int height) {
+        if (y <= 0 || y >= height - 1) {
+            return Blocks.AIR.defaultBlockState();
+        }
+        int[] position = centralStairPosition(y - 1, width, depth);
+        if (position[0] != x || position[1] != z) {
+            return Blocks.AIR.defaultBlockState();
+        }
+        return Blocks.POLISHED_DEEPSLATE_STAIRS.defaultBlockState()
+                .setValue(StairBlock.FACING, centralStairFacing(y, width, depth))
+                .setValue(StairBlock.HALF, Half.BOTTOM);
+    }
+
+    private static int[] centralStairPosition(int step, int width, int depth) {
+        int centerX = width / 2;
+        int centerZ = depth / 2;
+        int side = Math.max(2, Math.min(7, Math.min(width, depth) / 4));
+        int normalized = Math.floorMod(step, side * 4);
+        if (normalized <= side) {
+            return new int[] {centerX, centerZ - normalized};
+        }
+        if (normalized <= side * 2) {
+            return new int[] {centerX + normalized - side, centerZ - side};
+        }
+        if (normalized <= side * 3) {
+            return new int[] {centerX + side, centerZ - side + normalized - side * 2};
+        }
+        return new int[] {centerX + side - (normalized - side * 3), centerZ};
+    }
+
+    private static Direction centralStairFacing(int y, int width, int depth) {
+        int[] current = centralStairPosition(Math.max(0, y - 1), width, depth);
+        int[] next = centralStairPosition(y, width, depth);
+        int deltaX = Integer.compare(next[0], current[0]);
+        int deltaZ = Integer.compare(next[1], current[1]);
+        if (deltaX > 0) {
+            return Direction.EAST;
+        }
+        if (deltaX < 0) {
+            return Direction.WEST;
+        }
+        if (deltaZ > 0) {
+            return Direction.SOUTH;
+        }
+        return Direction.NORTH;
     }
 
     private static boolean isLight(
@@ -513,6 +614,12 @@ public final class LandmarkCatalog {
             Set<ResourceLocation> regions,
             LandmarkDefinition.Style style,
             Set<Connector.Direction> requiredConnections) {
+        // Landmarks own a complete generation cell. This keeps every side
+        // connector on the same 64-block boundary used by ordinary content;
+        // a smaller shell would leave its east/south exits stranded inside
+        // the owning cell.
+        width = GenerationGrid.CELL_SIZE_BLOCKS;
+        depth = GenerationGrid.CELL_SIZE_BLOCKS;
         ResourceLocation id = ResourceLocation.fromNamespaceAndPath("labrinth", "landmark/" + path);
         StructurePiece piece = StructurePiece.builder(
                         id,
@@ -557,11 +664,16 @@ public final class LandmarkCatalog {
         return new Connector(
                 position,
                 direction,
-                Connector.Type.WIDE,
-                7,
+                Connector.Type.STANDARD,
+                5,
                 4,
                 StructurePiece.Rotation.NONE,
                 true);
+    }
+
+    private static Set<Connector.Direction> toOpenConnections(
+            Set<Connector.Direction> availableConnections) {
+        return Set.copyOf(availableConnections);
     }
 
     private static boolean isSectorOrigin(GenerationGrid.Cell cell) {
@@ -589,22 +701,10 @@ public final class LandmarkCatalog {
     private static Set<Connector.Direction> availableConnections(
             RandomState randomState,
             GenerationGrid.Cell cell) {
-        PositionalRandomFactory factory = randomState.getOrCreateRandomFactory(CONNECTION_FACTORY_ID);
+        GenerationNeighbors neighbors = GenerationNeighbors.forCell(randomState, cell);
         EnumSet<Connector.Direction> available = EnumSet.noneOf(Connector.Direction.class);
         for (GenerationGrid.Direction direction : GenerationGrid.Direction.values()) {
-            GenerationGrid.Cell neighbor = cell.neighbor(direction);
-            GenerationGrid.Cell first = cell;
-            GenerationGrid.Cell second = neighbor;
-            if (compare(first, second) > 0) {
-                first = neighbor;
-                second = cell;
-            }
-            int edgeAxis = first.x() != second.x() ? 0 : 1;
-            RandomSource edgeRandom = factory.at(
-                    Math.toIntExact(first.x()),
-                    Math.toIntExact(first.z()),
-                    edgeAxis);
-            if (edgeRandom.nextBoolean()) {
+            if (neighbors.hasConnection(direction)) {
                 available.add(toConnectorDirection(direction));
             }
         }
@@ -620,11 +720,6 @@ public final class LandmarkCatalog {
         };
     }
 
-    private static int compare(GenerationGrid.Cell first, GenerationGrid.Cell second) {
-        int xComparison = Long.compare(first.x(), second.x());
-        return xComparison != 0 ? xComparison : Long.compare(first.z(), second.z());
-    }
-
     private record Option(
             LandmarkDefinition definition,
             int floorIndex,
@@ -638,11 +733,14 @@ public final class LandmarkCatalog {
             int floorIndex,
             int depth,
             RegionDefinition region,
-            PlacedStructurePiece piece) {
+            PlacedStructurePiece piece,
+            Set<Connector.Direction> openConnections) {
         public Instance {
             Objects.requireNonNull(definition, "definition");
             Objects.requireNonNull(originCell, "originCell");
             Objects.requireNonNull(region, "region");
+            Objects.requireNonNull(openConnections, "openConnections");
+            openConnections = Set.copyOf(openConnections);
             if (!definition.eligible(depth, floorIndex, region.id())) {
                 throw new IllegalArgumentException("landmark instance is outside its definition gates");
             }

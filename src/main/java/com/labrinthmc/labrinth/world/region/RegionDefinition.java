@@ -111,10 +111,11 @@ public record RegionDefinition(
                 return base;
             }
             if (isLight(base)) {
-                if (!lighting.enabled() || outage(localX, localY, localZ, lighting.outagePercent())) {
-                    return Blocks.AIR.defaultBlockState();
-                }
-                return block(lightId).defaultBlockState();
+                // Lanterns are non-solid and can be attached to a ceiling or
+                // floor. A generated light must occupy the same full block
+                // volume on every side of a connector, so use a solid light
+                // block for all palette lights and outage states alike.
+                return Blocks.GLOWSTONE.defaultBlockState();
             }
             if (base.is(Blocks.DEEPSLATE_BRICKS) || base.is(Blocks.DEEPSLATE_BRICK_WALL)) {
                 return block(wallId).defaultBlockState();
@@ -201,27 +202,29 @@ public record RegionDefinition(
                 return base;
             }
             long value = worldX * 31L ^ worldY * 17L ^ worldZ * 13L;
-            if (Math.floorMod(value, 100L) >= densityPercent) {
+            // Generic decoration is a sparse dressing pass, not a second
+            // terrain generator. Full blocks in every empty cell made rooms
+            // and corridors impassable; authored pieces can still place dense
+            // vegetation, water, or debris explicitly.
+            int sparseDensity = Math.max(1, densityPercent / 6);
+            if (Math.floorMod(value, 100L) >= sparseDensity) {
                 return base;
-            }
-            if (waterlogged && (localY == 1 || localY == pieceHeight - 2)) {
-                return Blocks.WATER.defaultBlockState();
             }
             if (pipes && localY == pieceHeight - 2
                     && (localX == 1 || localZ == 1)) {
-                return block(pipeBlockId).defaultBlockState();
+                return Blocks.CHAIN.defaultBlockState();
             }
-            if (vines && localY >= 2 && (localX + localZ) % 3 == 0) {
+            if (vines && localY == 2 && (localX == 1 || localZ == 1)) {
                 return Blocks.VINE.defaultBlockState();
             }
             if (vegetation && localY == 1) {
-                return block(vegetationBlockId).defaultBlockState();
+                return Blocks.MOSS_CARPET.defaultBlockState();
             }
             if (debris && localY == 1) {
-                return block(debrisBlockId).defaultBlockState();
+                return Blocks.COBBLESTONE_SLAB.defaultBlockState();
             }
             return alternateGeometry && localY == 1
-                    ? accent.defaultBlockState()
+                    ? Blocks.POLISHED_BLACKSTONE_SLAB.defaultBlockState()
                     : base;
         }
     }

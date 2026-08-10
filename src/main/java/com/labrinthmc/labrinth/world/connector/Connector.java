@@ -119,7 +119,26 @@ public record Connector(
                 type,
                 width,
                 height,
-                rotation.mirrored(mirror).add(pieceRotation),
+                // The profile rotation describes the connector aperture, not
+                // the containing piece. Piece rotation is already represented
+                // by the transformed position and facing direction; adding it
+                // here made identical door profiles reject one another merely
+                // because neighboring pieces chose different orientations.
+                rotation.mirrored(mirror),
+                required,
+                state,
+                compatibleTypes);
+    }
+
+    /** Return this endpoint with a corrected placed position. */
+    public Connector withPosition(Position newPosition) {
+        return new Connector(
+                Objects.requireNonNull(newPosition, "newPosition"),
+                direction,
+                type,
+                width,
+                height,
+                rotation,
                 required,
                 state,
                 compatibleTypes);

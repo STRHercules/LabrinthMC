@@ -1,6 +1,7 @@
 package com.labrinthmc.labrinth.world.corridor;
 
 import com.labrinthmc.labrinth.world.connector.Connector;
+import com.labrinthmc.labrinth.world.generation.GenerationConnectionRules;
 import com.labrinthmc.labrinth.world.generation.GenerationGrid;
 import com.labrinthmc.labrinth.world.generation.PlacedStructurePiece;
 import com.labrinthmc.labrinth.world.generation.StructurePiece;
@@ -167,6 +168,7 @@ public final class CorridorVariants {
         return local == null
                 ? Blocks.AIR.defaultBlockState()
                 : blockStateForLocal(
+                        placed,
                         geometry,
                         local.x(),
                         local.y(),
@@ -245,7 +247,7 @@ public final class CorridorVariants {
             int depth) {
         return switch (direction) {
             case NORTH -> new Connector(
-                    new Connector.Position((width - 1) / 2, 1, 0),
+                    new Connector.Position(width / 2, 1, 0),
                     Connector.Direction.NORTH,
                     Connector.Type.STANDARD,
                     APERTURE_WIDTH,
@@ -253,7 +255,7 @@ public final class CorridorVariants {
                     StructurePiece.Rotation.NONE,
                     true);
             case EAST -> new Connector(
-                    new Connector.Position(width, 1, (depth - 1) / 2),
+                    new Connector.Position(width, 1, depth / 2),
                     Connector.Direction.EAST,
                     Connector.Type.STANDARD,
                     APERTURE_WIDTH,
@@ -261,7 +263,7 @@ public final class CorridorVariants {
                     StructurePiece.Rotation.NONE,
                     true);
             case SOUTH -> new Connector(
-                    new Connector.Position((width - 1) / 2, 1, depth),
+                    new Connector.Position(width / 2, 1, depth),
                     Connector.Direction.SOUTH,
                     Connector.Type.STANDARD,
                     APERTURE_WIDTH,
@@ -269,7 +271,7 @@ public final class CorridorVariants {
                     StructurePiece.Rotation.NONE,
                     true);
             case WEST -> new Connector(
-                    new Connector.Position(0, 1, (depth - 1) / 2),
+                    new Connector.Position(0, 1, depth / 2),
                     Connector.Direction.WEST,
                     Connector.Type.STANDARD,
                     APERTURE_WIDTH,
@@ -280,6 +282,7 @@ public final class CorridorVariants {
     }
 
     private static BlockState blockStateForLocal(
+            PlacedStructurePiece placed,
             Geometry geometry,
             int localX,
             int localY,
@@ -287,27 +290,33 @@ public final class CorridorVariants {
             StructurePiece.Rotation rotation,
             Set<GenerationGrid.Direction> openDirections,
             RegionDefinition region) {
-        if (!geometry.pathAt(localX, localZ)) {
+        GenerationConnectionRules.LocalCenter center =
+                GenerationConnectionRules.localCellCenter(placed);
+        if (!geometry.pathAt(localX, localZ, center.x(), center.z())) {
             return Blocks.AIR.defaultBlockState();
         }
         BlockState state;
         if (localY == 0) {
             state = Blocks.POLISHED_DEEPSLATE.defaultBlockState();
         } else if (localY == HEIGHT - 1) {
-            state = isLight(geometry, localX, localZ)
+            state = isLight(geometry, localX, localZ, center)
                     ? Blocks.SEA_LANTERN.defaultBlockState()
                     : Blocks.POLISHED_DEEPSLATE.defaultBlockState();
         } else {
-            state = hasWall(geometry, localX, localZ, rotation, openDirections)
+            state = hasWall(placed, geometry, localX, localZ, rotation, openDirections, center)
                     ? Blocks.DEEPSLATE_BRICKS.defaultBlockState()
                     : Blocks.AIR.defaultBlockState();
         }
         return region.paletteState(state, localY, HEIGHT, localX, localZ);
     }
 
-    private static boolean isLight(Geometry geometry, int localX, int localZ) {
-        int centerX = (geometry.width() - 1) / 2;
-        int centerZ = (geometry.depth() - 1) / 2;
+    private static boolean isLight(
+            Geometry geometry,
+            int localX,
+            int localZ,
+            GenerationConnectionRules.LocalCenter center) {
+        int centerX = center.x();
+        int centerZ = center.z();
         if (geometry.shape() == Shape.RECTANGLE) {
             return localX == centerX && localZ % LIGHT_SPACING == LIGHT_SPACING / 2;
         }
@@ -316,16 +325,26 @@ public final class CorridorVariants {
     }
 
     private static boolean hasWall(
+            PlacedStructurePiece placed,
             Geometry geometry,
             int localX,
             int localZ,
             StructurePiece.Rotation rotation,
-            Set<GenerationGrid.Direction> openDirections) {
+            Set<GenerationGrid.Direction> openDirections,
+            GenerationConnectionRules.LocalCenter center) {
         for (GenerationGrid.Direction direction : GenerationGrid.Direction.values()) {
             int neighborX = localX + directionX(direction);
             int neighborZ = localZ + directionZ(direction);
-            if (!geometry.pathAt(neighborX, neighborZ)
-                    && !isOpenFaceCell(geometry, localX, localZ, direction, rotation, openDirections)) {
+            if (!geometry.pathAt(neighborX, neighborZ, center.x(), center.z())
+                    && !isOpenFaceCell(
+                            placed,
+                            geometry,
+                            localX,
+                            localZ,
+                            direction,
+                            rotation,
+                            openDirections,
+                            center)) {
                 return true;
             }
         }
@@ -333,20 +352,22 @@ public final class CorridorVariants {
     }
 
     private static boolean isOpenFaceCell(
+            PlacedStructurePiece placed,
             Geometry geometry,
             int localX,
             int localZ,
             GenerationGrid.Direction localDirection,
             StructurePiece.Rotation rotation,
-            Set<GenerationGrid.Direction> openDirections) {
+            Set<GenerationGrid.Direction> openDirections,
+            GenerationConnectionRules.LocalCenter localCenter) {
         if (!geometry.connectors().contains(localDirection)
                 || !openDirections.contains(localDirection.rotated(rotation))) {
             return false;
         }
         int center = localDirection == GenerationGrid.Direction.NORTH
                 || localDirection == GenerationGrid.Direction.SOUTH
-                ? (geometry.width() - 1) / 2
-                : (geometry.depth() - 1) / 2;
+                ? localCenter.x()
+                : localCenter.z();
         int across = localDirection == GenerationGrid.Direction.NORTH
                 || localDirection == GenerationGrid.Direction.SOUTH ? localX : localZ;
         boolean atFace = switch (localDirection) {
@@ -451,15 +472,13 @@ public final class CorridorVariants {
             connectors = Set.copyOf(connectors);
         }
 
-        private boolean pathAt(int x, int z) {
+        private boolean pathAt(int x, int z, int centerX, int centerZ) {
             if (x < 0 || x >= width || z < 0 || z >= depth) {
                 return false;
             }
             if (shape == Shape.RECTANGLE) {
                 return true;
             }
-            int centerX = (width - 1) / 2;
-            int centerZ = (depth - 1) / 2;
             int halfWidth = pathWidth / 2;
             return (connectors.contains(GenerationGrid.Direction.NORTH)
                             && x >= centerX - halfWidth && x <= centerX + halfWidth && z <= centerZ)
