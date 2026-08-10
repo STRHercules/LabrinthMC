@@ -2,7 +2,7 @@ package com.labrinthmc.labrinth.world.generation;
 
 /** Bounded inputs shared by generation decisions and placement validation. */
 public record GenerationConstraints(int minY, int maxYExclusive, int maxDepth) {
-    public static final GenerationConstraints LABRINTH = new GenerationConstraints(-16, 256, 32);
+    public static final GenerationConstraints LABRINTH = new GenerationConstraints(-32, 256, 32);
 
     public GenerationConstraints {
         if (minY >= maxYExclusive) {

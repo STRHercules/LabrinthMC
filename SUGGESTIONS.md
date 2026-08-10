@@ -1,3 +1,35 @@
+## 0.10.11 Wall-side traversal QA
+
+- Add a NeoForge game test that traverses both incline/decline directions in
+  all four rotations and verifies the player reaches each floor without a
+  one-block drop at the transition.
+- Add a visual smoke pass for the inner-wall stairwell route at the lower
+  landing, both repeated turns, stacked boundary, and upper landing.
+
+## 0.10.10 Vertical traversal follow-up
+
+- Add a NeoForge game test that walks the shared stair landing when a lower
+  stair piece is present but the next boundary is intentionally absent.
+- Add visual smoke coverage for rotated hallway stair rows and ladder support
+  after chunk reload.
+
+## 0.10.9 Stairwell traversal follow-up
+
+- Add a NeoForge game test that walks the complete 32-step inner-wall route in
+  both directions and checks each step's collision and facing.
+- Add a visual stairwell smoke pass for the lower entry, repeated inner turn,
+  upper landing, and all four chunk-boundary approaches.
+
+## 0.10.8 Geometry follow-up
+
+- Add a NeoForge game test that walks every expanded hallway silhouette across
+  all rotations and verifies the five-by-four doorway air volume after chunk
+  reload.
+- Add a bounded traversal smoke test for the centered ramp stair row and the
+  retained seven-by-seven vertical stair path at both floor boundaries.
+- Replace the current fixed cell-size decoration coordinates with authored
+  room-local decoration rules if future room variants need denser interiors.
+
 ## 0.10.6 Vertical passage follow-up
 
 - Add a NeoForge game test that samples every live vertical kind at both floor

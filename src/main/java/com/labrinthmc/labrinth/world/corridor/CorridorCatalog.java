@@ -11,6 +11,7 @@ import com.labrinthmc.labrinth.world.generation.VerticalCatalog;
 import com.labrinthmc.labrinth.world.region.RegionCatalog;
 import com.labrinthmc.labrinth.world.region.RegionDefinition;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
@@ -30,17 +31,9 @@ public final class CorridorCatalog {
             ResourceLocation.fromNamespaceAndPath("labrinth", "corridor_selection");
     private static final long SELECTION_LOCAL_X = 0x53454C454354L;
     private static final long SELECTION_LOCAL_Z = 0x504945434553L;
-    private static final List<Option> OPTIONS = List.of(
-            option(CorridorKind.SHORT_STRAIGHT, StraightCorridor.shortDefinition()),
-            option(CorridorKind.MEDIUM_STRAIGHT, StraightCorridor.mediumDefinition()),
-            option(CorridorKind.LONG_STRAIGHT, StraightCorridor.longDefinition()),
-            option(CorridorKind.LEFT_TURN, CorridorVariants.definition(CorridorKind.LEFT_TURN)),
-            option(CorridorKind.RIGHT_TURN, CorridorVariants.definition(CorridorKind.RIGHT_TURN)),
-            option(CorridorKind.T_JUNCTION, CorridorVariants.definition(CorridorKind.T_JUNCTION)),
-            option(CorridorKind.FOUR_WAY, CorridorVariants.definition(CorridorKind.FOUR_WAY)),
-            option(CorridorKind.DEAD_END, CorridorVariants.definition(CorridorKind.DEAD_END)),
-            option(CorridorKind.WIDE_CORRIDOR, CorridorVariants.definition(CorridorKind.WIDE_CORRIDOR)),
-            option(CorridorKind.NARROW_CORRIDOR, CorridorVariants.definition(CorridorKind.NARROW_CORRIDOR)));
+    private static final List<Option> OPTIONS = Arrays.stream(CorridorKind.values())
+            .map(kind -> option(kind, definitionFor(kind)))
+            .toList();
 
     private CorridorCatalog() {
     }
@@ -310,6 +303,8 @@ public final class CorridorCatalog {
             StraightCorridor.place(chunk, piece, placement.openDirections(), region);
         } else if (CorridorVariants.supports(piece.definition())) {
             CorridorVariants.place(chunk, piece, placement.openDirections(), region);
+        } else if (HallwayVariants.supports(piece.definition())) {
+            HallwayVariants.place(chunk, piece, placement.openDirections(), region);
         } else {
             throw new IllegalArgumentException("unknown corridor definition: " + piece.definition().id());
         }
@@ -350,7 +345,27 @@ public final class CorridorCatalog {
                     placement.openDirections(),
                     region);
         }
+        if (HallwayVariants.supports(piece.definition())) {
+            return HallwayVariants.blockStateAt(
+                    piece,
+                    worldX,
+                    worldY,
+                    worldZ,
+                    placement.openDirections(),
+                    region);
+        }
         throw new IllegalArgumentException("unknown corridor definition: " + piece.definition().id());
+    }
+
+    private static StructurePiece definitionFor(CorridorKind kind) {
+        return switch (kind) {
+            case SHORT_STRAIGHT -> StraightCorridor.shortDefinition();
+            case MEDIUM_STRAIGHT -> StraightCorridor.mediumDefinition();
+            case LONG_STRAIGHT -> StraightCorridor.longDefinition();
+            case LEFT_TURN, RIGHT_TURN, T_JUNCTION, FOUR_WAY, DEAD_END,
+                    WIDE_CORRIDOR, NARROW_CORRIDOR -> CorridorVariants.definition(kind);
+            default -> HallwayVariants.definition(kind);
+        };
     }
 
     private static Selection select(
@@ -615,13 +630,21 @@ public final class CorridorCatalog {
             case SHORT_STRAIGHT -> withFloor(StraightCorridor.shortOriginFor(cell, rotation), floorIndex);
             case MEDIUM_STRAIGHT -> withFloor(StraightCorridor.mediumOriginFor(cell, rotation), floorIndex);
             case LONG_STRAIGHT -> withFloor(StraightCorridor.longOriginFor(cell, rotation), floorIndex);
-            default -> centeredOrigin(
-                    cell,
-                    rotation,
-                    option.definition().width(),
-                    option.definition().depth(),
-                    floorIndex);
+            default -> offsetFloor(
+                    centeredOrigin(
+                            cell,
+                            rotation,
+                            option.definition().width(),
+                            option.definition().depth(),
+                            floorIndex),
+                    option.kind());
         };
+    }
+
+    private static StructurePiece.BlockPoint offsetFloor(
+            StructurePiece.BlockPoint origin,
+            CorridorKind kind) {
+        return origin.add(0, HallwayVariants.originYOffset(kind), 0);
     }
 
     private static StructurePiece.BlockPoint centeredOrigin(

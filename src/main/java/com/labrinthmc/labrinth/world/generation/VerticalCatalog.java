@@ -6,7 +6,6 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
@@ -32,7 +31,7 @@ import com.labrinthmc.labrinth.world.region.RegionDefinition;
  */
 public final class VerticalCatalog {
     public static final int BASE_FLOOR_Y = 4;
-    public static final int FLOOR_SPACING = 16;
+    public static final int FLOOR_SPACING = 32;
     public static final int MIN_FLOOR = -1;
     public static final int MAX_FLOOR = 1;
     public static final int WIDTH = 7;
@@ -54,15 +53,24 @@ public final class VerticalCatalog {
     // drop and elevator definitions remain catalogued for later authored
     // implementations, but their placeholder landings must not appear as
     // unexplained wheat pits or chain-filled dead shafts in generated worlds.
-    // The stair path begins at the outer wall, then follows the stairwell's
-    // perimeter so the first rise is reachable from the horizontal shell.
+    // One 16-step inner-wall loop is repeated twice. Its first and last
+    // positions are adjacent, so an identical piece above it continues at the
+    // floor boundary instead of leaving a diagonal gap or a vertical stack.
     private static final int[][] STAIR_PATH = {
-            {3, 0}, {3, 1}, {3, 2}, {2, 2},
-            {1, 2}, {1, 3}, {1, 4}, {1, 5},
-            {2, 5}, {3, 5}, {4, 5}, {5, 5},
-            {5, 4}, {5, 3}, {5, 2}, {5, 1}
+            {1, 1}, {1, 2}, {1, 3}, {1, 4},
+            {1, 5}, {2, 5}, {3, 5}, {4, 5},
+            {5, 5}, {5, 4}, {5, 3}, {5, 2},
+            {5, 1}, {4, 1}, {3, 1}, {2, 1},
+            {1, 1}, {1, 2}, {1, 3}, {1, 4},
+            {1, 5}, {2, 5}, {3, 5}, {4, 5},
+            {5, 5}, {5, 4}, {5, 3}, {5, 2},
+            {5, 1}, {4, 1}, {3, 1}, {2, 1}
     };
     private static final Map<VerticalKind, StructurePiece> DEFINITIONS = createDefinitions();
+
+    static {
+        validateStairPath();
+    }
 
     private VerticalCatalog() {
     }
@@ -232,7 +240,7 @@ public final class VerticalCatalog {
         int localX = Math.toIntExact(worldX - selection.piece().origin().x());
         int localZ = Math.toIntExact(worldZ - selection.piece().origin().z());
         if (worldY == selection.upperY()) {
-            return upperFloorState();
+            return upperFloorState(selection, localX, localZ);
         }
 
         int localY = worldY - selection.lowerY();
@@ -254,7 +262,9 @@ public final class VerticalCatalog {
         BlockState state = switch (selection.kind()) {
             case STAIR_UP, STAIR_DOWN -> stairState(localY, localX, localZ);
             case LADDER_SHAFT -> localX == WIDTH / 2 && localZ == 1
-                    ? Blocks.LADDER.defaultBlockState().setValue(LadderBlock.FACING, Direction.NORTH)
+                    // The ladder occupies the cell immediately inside the
+                    // north wall; south-facing ladders attach to localZ 0.
+                    ? Blocks.LADDER.defaultBlockState().setValue(LadderBlock.FACING, Direction.SOUTH)
                     : Blocks.AIR.defaultBlockState();
             case DROP_SHAFT -> localY == 0 && localX >= 2 && localX <= 4 && localZ >= 2 && localZ <= 4
                     ? Blocks.HAY_BLOCK.defaultBlockState()
@@ -305,23 +315,31 @@ public final class VerticalCatalog {
         if (!isStairPath(localY, localX, localZ)) {
             return Blocks.AIR.defaultBlockState();
         }
-        Direction ascending = localY < STAIR_PATH.length - 1
+        Direction facing = localY < STAIR_PATH.length - 1
                 ? directionBetween(STAIR_PATH[localY], STAIR_PATH[localY + 1])
                 : directionBetween(STAIR_PATH[localY - 1], STAIR_PATH[localY]);
-        // Vanilla's bottom-half stair FACING points toward its high side. Use
-        // the next path position directly so each block can be climbed toward
-        // the upper endpoint instead of presenting its back to the player.
-        Direction facing = ascending;
+        // FACING is the high side of a bottom-half stair. Keep the same path
+        // orientation for both vertical piece kinds so stacked boundaries
+        // share one walkable sequence.
         return Blocks.POLISHED_DEEPSLATE_STAIRS.defaultBlockState()
                 .setValue(StairBlock.FACING, facing)
                 .setValue(StairBlock.HALF, Half.BOTTOM);
     }
 
-    private static BlockState upperFloorState() {
-        // The upper boundary is an intentional open shaft. The final stair
-        // ends below this layer and the upper room/corridor floor remains
-        // available immediately outside the seven-block footprint.
-        return Blocks.AIR.defaultBlockState();
+    private static BlockState upperFloorState(
+            Selection selection,
+            int localX,
+            int localZ) {
+        // Leave a single landing at the wall-side route endpoint. A vertical
+        // piece above it overwrites that landing with its first stair, while
+        // an isolated piece still lets the player step onto the upper floor
+        // instead of ending over a seven-by-seven hole.
+        return (selection.kind() == VerticalKind.STAIR_UP
+                        || selection.kind() == VerticalKind.STAIR_DOWN)
+                && localX == 1
+                && localZ == 1
+                ? Blocks.POLISHED_DEEPSLATE.defaultBlockState()
+                : Blocks.AIR.defaultBlockState();
     }
 
     private static boolean hasHorizontalPassage(
@@ -375,6 +393,38 @@ public final class VerticalCatalog {
                 && localY < STAIR_PATH.length
                 && STAIR_PATH[localY][0] == localX
                 && STAIR_PATH[localY][1] == localZ;
+    }
+
+    private static void validateStairPath() {
+        if (STAIR_PATH.length != HEIGHT) {
+            throw new IllegalStateException("stair path must fill the vertical floor spacing");
+        }
+        if (STAIR_PATH[0][0] != 1 || STAIR_PATH[0][1] != 1) {
+            throw new IllegalStateException("stair path must start at the wall-side landing");
+        }
+        if (!areAdjacent(STAIR_PATH[STAIR_PATH.length - 1], STAIR_PATH[0])) {
+            throw new IllegalStateException("stair path must continue across stacked boundaries");
+        }
+        for (int index = 0; index < STAIR_PATH.length; index++) {
+            int x = STAIR_PATH[index][0];
+            int z = STAIR_PATH[index][1];
+            if (!isInnerWallPosition(x, z)) {
+                throw new IllegalStateException("stair path must hug the inner stairwell wall");
+            }
+            if (index > 0) {
+                if (!areAdjacent(STAIR_PATH[index - 1], STAIR_PATH[index])) {
+                    throw new IllegalStateException("stair path contains a non-adjacent step");
+                }
+            }
+        }
+    }
+
+    private static boolean areAdjacent(int[] first, int[] second) {
+        return Math.abs(first[0] - second[0]) + Math.abs(first[1] - second[1]) == 1;
+    }
+
+    private static boolean isInnerWallPosition(int x, int z) {
+        return x == 1 || x == WIDTH - 2 || z == 1 || z == DEPTH - 2;
     }
 
     private static Direction directionBetween(int[] from, int[] to) {

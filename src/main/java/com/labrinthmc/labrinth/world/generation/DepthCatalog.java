@@ -124,9 +124,13 @@ public final class DepthCatalog {
             return 0;
         }
         int boostPerDepth = switch (kind) {
-            case T_JUNCTION, FOUR_WAY -> 6;
-            case LEFT_TURN, RIGHT_TURN -> 4;
-            case WIDE_CORRIDOR, NARROW_CORRIDOR -> 3;
+            case T_JUNCTION, FOUR_WAY, GRAND_T_JUNCTION, GRAND_FOUR_WAY -> 6;
+            case LEFT_TURN, RIGHT_TURN, CURVED_LEFT, CURVED_RIGHT, S_CURVE,
+                    U_TURN, GRAND_CURVED_LEFT, GRAND_CURVED_RIGHT, GRAND_S_CURVE,
+                    GRAND_U_TURN -> 4;
+            case WIDE_CORRIDOR, NARROW_CORRIDOR, INCLINE, DECLINE, STAIRCASE_UP,
+                    STAIRCASE_DOWN, GRAND_INCLINE, GRAND_DECLINE,
+                    GRAND_STAIRCASE_UP, GRAND_STAIRCASE_DOWN -> 3;
             case DEAD_END -> 1;
             default -> 0;
         };

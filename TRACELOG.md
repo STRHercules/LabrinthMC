@@ -1,3 +1,202 @@
+## 0.10.11 - Wall-Hugging Stair Corrections
+
+### Task
+Correct the east/west incline and decline stair height and keep vertical
+stairwell stairs against the inner walls with safe floor landings.
+
+### Changes
+- Moved hallway transition stairs onto the higher floor row for every rotation.
+- Replaced the centered vertical route with a repeated inner-wall perimeter.
+- Moved the upper landing to the wall-side route endpoint.
+- Strengthened deterministic stair-path validation for inner-wall placement and
+  stacked floor-boundary adjacency.
+- Incremented the mod version from `0.10.10` to `0.10.11`.
+
+### Implementation
+Hallway geometry now recognizes a transition from either adjacent row and
+materializes the bottom-half stair on the row with the greater floor height.
+Its facing is derived from the lower neighboring side and then rotated with
+the placed piece. The seven-by-seven vertical path uses only inner-perimeter
+coordinates, repeats the same sixteen-step loop twice, and ends beside the
+wall-side upper landing so stacked pieces continue in the same direction.
+
+### Rationale
+Placing a transition stair on the preceding lower row leaves the opposite
+orientation one block low. The old vertical path passed through the stairwell
+center, making turns and floor exits unsafe. Both fixes live in the shared
+deterministic materializers without adding neighbor scans or changing piece
+ownership.
+
+### Validation
+- `gradlew.bat generationSelfCheck --console=plain --no-daemon` passed.
+- `gradlew.bat build --console=plain --no-daemon` passed.
+- `git diff --check` passed.
+- Manual fresh-world visual traversal remains required for rotated ramps,
+  stacked stairwell pieces, and collision/landing QA.
+
+## 0.10.10 - Consistent Stair Geometry
+
+### Task
+Correct incline/decline stair placement, keep stacked stairwell pieces
+continuous, and attach ladder shafts to their enclosing walls.
+
+### Changes
+- Materialized full-width stair rows at hallway height transitions and aligned
+  their facing with the rising side of each transition.
+- Replaced the stairwell route with a repeated inner loop whose floor-boundary
+  endpoints are adjacent and added a dedicated upper landing.
+- Rotated ladder states toward the north wall so every ladder has a solid wall
+  behind it instead of facing into the shaft.
+- Incremented the mod version from `0.10.9` to `0.10.10`.
+
+### Implementation
+Hallway ramps retain their deterministic level profile, but every walkable
+cell in a transition row now receives the same vanilla stair state. Vertical
+stair pieces share a 16-step inner loop repeated for the full 32-block floor
+spacing; the final step is adjacent to the next piece's canonical first step.
+An isolated stair piece keeps one upper landing block, while a stacked piece
+overwrites that block with its next stair. Ladder blocks remain one cell inside
+the north wall and use the south-facing attachment state.
+
+### Rationale
+The previous hallway materializer replaced only the center cell at each height
+change, leaving broad solid risers and visible floor gaps. The previous
+stairwell path did not meet its own next-floor entry and the ladder state faced
+away from its support wall. These changes fix the shared materialization rules
+without adding neighbor scans or changing deterministic cell ownership.
+
+### Validation
+- `gradlew.bat generationSelfCheck --console=plain --no-daemon` passed.
+- `gradlew.bat build --console=plain --no-daemon` passed.
+- `git diff --check` passed.
+- Manual fresh-world visual traversal remains required for ramp silhouettes,
+  stacked floor transitions, and ladder attachment after chunk reload.
+
+## 0.10.9 - Inner-wall Stairwell Path
+
+### Task
+Keep stairwell stairs out of the shell wall and make the complete 32-step
+stairwell route continuously traversable.
+
+### Changes
+- Replaced the outer-boundary second half of the extended stair path with a
+  repeated inner-perimeter route.
+- Kept only the lower entry stair on the shell boundary; all remaining stairs
+  occupy inner-track cells, leaving the surrounding wall intact.
+- Added deterministic path validation for bounds, adjacency, and wall-cell
+  exclusion.
+- Incremented the mod version from `0.10.8` to `0.10.9`.
+
+### Implementation
+The seven-by-seven stairwell now uses a 32-position path whose first position
+is the lower landing and whose subsequent positions remain inside coordinates
+1 through 5. The renderer still derives each stair's facing from its next
+adjacent path position, while the path validator prevents future edits from
+placing a step in the shell or skipping a block.
+
+### Rationale
+The previous extension used the outer x/z boundary to gain the additional
+vertical distance. Those coordinates are owned by the stairwell wall, so the
+stairs visually and physically intersected the shell. Reusing the inner
+perimeter preserves the compact footprint and gives the full spacing without
+introducing a new stairwell type or boundary exception.
+
+### Validation
+- `gradlew.bat build` passed.
+- The generation self-check passed with the deterministic path validation.
+- `git diff --check` passed.
+- Manual fresh-world traversal remains required for collision and visual QA.
+
+## 0.10.8 - Connected Hallways and Expanded Floor Spacing
+
+### Task
+Remove the unwanted stairwell variants, repair grand-to-standard and
+grand-to-room connections, constrain incline/decline stairs to a single row,
+and give rooms more vertical space between Labrinth floors.
+
+### Changes
+- Removed the four experimental stairwell footprint/type variants and restored
+  the original five vertical definitions.
+- Kept every horizontal connector on the shared five-by-four doorway profile,
+  including grand hallways and variable-height rooms; grand shells now cap the
+  wall above that aperture instead of exposing a tall gap.
+- Made all incline/decline and staircase hallway variants use one centered stair
+  column, with rotation-aware facing and level endpoint landings.
+- Increased floor spacing from 16 to 32 blocks and expanded the dimension lower
+  bound to Y -32 while retaining the Y 256 exclusive top bound.
+- Extended the retained seven-by-seven vertical stair path to all 32 blocks
+  between floors and corrected its bottom-stair facing.
+- Incremented the mod version from `0.10.7` to `0.10.8`.
+
+### Implementation
+Hallway materialization derives its doorway opening from the connector floor
+and applies the four-block aperture only at an actually open boundary. Ramp
+profiles use a signed delta for stair orientation; declines are translated
+down within their piece bounds so both endpoint connectors remain at the
+neighboring floor Y. Room shells continue to use their own width and height,
+while the floor catalog and dimension metadata now share the 32-block spacing.
+
+### Rationale
+The connection contract must be identical at both sides of a boundary even
+when one shell is grand or one ramp dips internally. Keeping the existing
+cell-owned deterministic placement and changing only the shared aperture,
+stair-column, and vertical-boundary calculations fixes the visible seams
+without neighbor scans or a second generation graph.
+
+### Validation
+- `gradlew.bat generationSelfCheck` passed.
+- `gradlew.bat compileJava` passed.
+- The self-check verifies the retained five-definition vertical catalog, 32-block
+  floor coordinates, shared ramp and grand connector profiles, expanded
+  corridor coverage, and variable room bounds.
+- `git diff --check` passed.
+- Manual fresh-world visual smoke remains required for grand/standard seams,
+  ramp silhouettes, and traversal across the expanded floor spacing.
+
+## 0.10.7 - Expanded Hallway, Room, and Stairwell Variants
+
+### Task
+Add many curved, corner, incline, decline, staircase, grand-corridor,
+stairwell, and variable-size room variants that remain procedurally connected.
+
+### Changes
+- Added nineteen weighted hallway and grand-corridor definitions, including
+  curved turns, S-curves, U-turns, ramps, integrated staircase runs, and
+  grand-width junctions.
+- Added eight room definitions with width variants from 32 to 64 blocks and
+  heights from 6 to 14 blocks; room shells now render from their own bounds.
+- Added four deterministic stairwell variants covering narrow, standard, wide,
+  and grand footprints with straight, L-shaped, switchback, and spiral paths.
+- Expanded region pools and depth weighting so the new content can generate in
+  themed areas without weakening the shared doorway profile.
+- Incremented the mod version from `0.10.6` to `0.10.7`.
+
+### Implementation
+The existing cell-owned selection path now enumerates every corridor kind from
+the enum and dispatches expanded shapes through a shape-aware materializer.
+Curved and routed pieces retain the five-by-four horizontal aperture; ramp
+pieces use level landings at both cell edges so their internal stair geometry
+does not create mismatched neighboring Y coordinates. Room origins center the
+variable footprint while keeping one full-length axis for every retained
+boundary connector. Vertical selections use deterministic width/type metadata
+and generate bounded paths from the lower floor to the upper opening.
+
+### Rationale
+Keeping one shared connector contract and the existing deterministic cell
+ownership rule allows variety to grow without adding neighbor scans or a second
+generation graph. Variable rooms and stairwells are parameterized at the shell
+renderer instead of duplicating a fixed 64-block implementation.
+
+### Validation
+- `gradlew.bat generationSelfCheck` passed.
+- `gradlew.bat compileJava` passed.
+- The self-check now verifies expanded corridor coverage, rotated sized-room
+  boundary alignment, room width/height diversity, and stairwell width/type
+  diversity.
+- `git diff --check` passed.
+- Manual fresh-world visual smoke remains required for curved/ramp silhouettes,
+  grand rooms, and traversal of each stairwell path.
+
 ## 0.10.6 - Traversable Perimeter Stairwells
 
 ### Task

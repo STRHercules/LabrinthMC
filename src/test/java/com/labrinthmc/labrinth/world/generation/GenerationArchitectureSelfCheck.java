@@ -598,19 +598,25 @@ public final class GenerationArchitectureSelfCheck {
             int expectedWidth = switch (kind) {
                 case WIDE_CORRIDOR -> 9;
                 case NARROW_CORRIDOR -> 5;
-                case SHORT_STRAIGHT, MEDIUM_STRAIGHT, LONG_STRAIGHT, DEAD_END -> 7;
+                case GRAND_STRAIGHT, GRAND_S_CURVE, GRAND_INCLINE, GRAND_DECLINE,
+                        GRAND_STAIRCASE_UP, GRAND_STAIRCASE_DOWN -> 11;
+                case GRAND_CURVED_LEFT, GRAND_CURVED_RIGHT, GRAND_U_TURN,
+                        GRAND_T_JUNCTION, GRAND_FOUR_WAY -> GenerationGrid.CELL_SIZE_BLOCKS;
+                case SHORT_STRAIGHT, MEDIUM_STRAIGHT, LONG_STRAIGHT, DEAD_END,
+                        S_CURVE, INCLINE, DECLINE,
+                        STAIRCASE_UP, STAIRCASE_DOWN -> 7;
+                case CURVED_LEFT, CURVED_RIGHT, U_TURN -> GenerationGrid.CELL_SIZE_BLOCKS;
                 default -> GenerationGrid.CELL_SIZE_BLOCKS;
             };
             int expectedDepth = switch (kind) {
                 case SHORT_STRAIGHT -> StraightCorridor.SHORT_LENGTH;
                 case MEDIUM_STRAIGHT -> StraightCorridor.MEDIUM_LENGTH;
-                case LONG_STRAIGHT, LEFT_TURN, RIGHT_TURN, T_JUNCTION, FOUR_WAY,
-                        DEAD_END, WIDE_CORRIDOR, NARROW_CORRIDOR -> GenerationGrid.CELL_SIZE_BLOCKS;
+                default -> GenerationGrid.CELL_SIZE_BLOCKS;
             };
             int expectedConnectors = switch (kind) {
-                case LEFT_TURN, RIGHT_TURN -> 2;
-                case T_JUNCTION -> 3;
-                case FOUR_WAY -> 4;
+                case LEFT_TURN, RIGHT_TURN, CURVED_LEFT, CURVED_RIGHT -> 2;
+                case T_JUNCTION, U_TURN, GRAND_T_JUNCTION, GRAND_U_TURN -> 3;
+                case FOUR_WAY, GRAND_FOUR_WAY -> 4;
                 case DEAD_END -> 1;
                 default -> 2;
             };
@@ -619,6 +625,30 @@ public final class GenerationArchitectureSelfCheck {
                             && selected.piece().definition().depth() == expectedDepth
                             && selected.piece().connectors().size() == expectedConnectors,
                     "corridor catalog materializes the " + kind + " variant");
+            if (kind.name().contains("INCLINE")
+                    || kind.name().contains("DECLINE")
+                    || kind.name().contains("STAIRCASE")) {
+                require(selected.piece().connectors().stream()
+                                .allMatch(connector -> connector.width() == 5
+                                        && connector.height() == 4
+                                        && connector.position().y() == VerticalCatalog.floorY(0) + 1),
+                        "ramp " + kind + " retains the shared doorway profile");
+            }
+            if (kind.name().startsWith("GRAND_")) {
+                require(selected.piece().connectors().stream()
+                                .allMatch(connector -> connector.width() == 5
+                                        && connector.height() == 4),
+                        "grand " + kind + " retains the shared doorway aperture");
+            }
+            if (kind != CorridorKind.SHORT_STRAIGHT
+                    && kind != CorridorKind.MEDIUM_STRAIGHT) {
+                for (GenerationGrid.Direction direction : selected.connectorDirections()) {
+                            require(GenerationConnectionRules.hasBoundaryConnector(
+                                    selected.piece(), cell, direction),
+                            "corridor " + kind + " keeps its " + direction
+                                    + " connector on the cell boundary");
+                }
+            }
         }
         CorridorSelectionConfig defaults = CorridorCatalog.DEFAULT_CONFIG;
         CorridorCatalog.Selection first = CorridorCatalog.select(worldSeed, cell, defaults);
@@ -639,17 +669,7 @@ public final class GenerationArchitectureSelfCheck {
                     "corridor openings are symmetric for " + direction);
         }
 
-        CorridorSelectionConfig fourWayOnly = defaults
-                .withWeight(CorridorKind.SHORT_STRAIGHT, 0)
-                .withWeight(CorridorKind.MEDIUM_STRAIGHT, 0)
-                .withWeight(CorridorKind.LONG_STRAIGHT, 0)
-                .withWeight(CorridorKind.LEFT_TURN, 0)
-                .withWeight(CorridorKind.RIGHT_TURN, 0)
-                .withWeight(CorridorKind.T_JUNCTION, 0)
-                .withWeight(CorridorKind.DEAD_END, 0)
-                .withWeight(CorridorKind.WIDE_CORRIDOR, 0)
-                .withWeight(CorridorKind.NARROW_CORRIDOR, 0)
-                .withDeadEndChancePercent(0);
+        CorridorSelectionConfig fourWayOnly = onlyKindConfig(CorridorKind.FOUR_WAY);
         require(CorridorCatalog.select(worldSeed, new GenerationGrid.Cell(5, 5), fourWayOnly).kind()
                         == CorridorKind.FOUR_WAY,
                 "corridor weights are configurable");
@@ -716,6 +736,9 @@ public final class GenerationArchitectureSelfCheck {
         List<RoomDefinition> definitions = RoomCatalog.definitions();
         Set<ResourceLocation> ids = new java.util.HashSet<>();
         boolean foundSpawnMarker = false;
+        GenerationGrid.Cell cell = new GenerationGrid.Cell(-6, 9);
+        Set<Integer> roomWidths = new HashSet<>();
+        Set<Integer> roomHeights = new HashSet<>();
         require(definitions.size() == RoomKind.values().length,
                 "room catalog covers every Phase 5 room kind");
         for (RoomDefinition definition : definitions) {
@@ -725,10 +748,12 @@ public final class GenerationArchitectureSelfCheck {
                     "room registration maps both kind and ID");
             require(RoomCatalog.supports(definition.piece()), "room catalog owns its structure piece");
             require(definition.piece().kind() == StructurePiece.Kind.ROOM
-                            && definition.piece().width() == RoomCatalog.CELL_SIZE
-                            && definition.piece().height() == RoomCatalog.HEIGHT
-                            && definition.piece().depth() == RoomCatalog.CELL_SIZE,
-                    "starter rooms use the standard cell-sized shell");
+                            && definition.piece().width() >= 32
+                            && definition.piece().height() >= 6
+                            && definition.piece().depth() >= 32,
+                    "rooms use bounded variable-size shells");
+            roomWidths.add(definition.piece().width());
+            roomHeights.add(definition.piece().height());
             require(definition.piece().connectors().size() <= 4
                             && definition.piece().allowedRotations().size() == 4
                             && definition.piece().allowedRegions().contains(RoomCatalog.STANDARD_REGION),
@@ -739,6 +764,28 @@ public final class GenerationArchitectureSelfCheck {
                                     && connector.height() == RoomCatalog.APERTURE_HEIGHT),
                     "room connectors share the hallway aperture profile");
             foundSpawnMarker |= !definition.spawnMarkers().isEmpty();
+            for (StructurePiece.Rotation rotation : definition.piece().allowedRotations()) {
+                int transformedWidth = StructurePiece.transformedWidth(
+                        definition.piece().width(), definition.piece().depth(), rotation);
+                int transformedDepth = StructurePiece.transformedDepth(
+                        definition.piece().width(), definition.piece().depth(), rotation);
+                PlacedStructurePiece placed = definition.piece().placedAt(
+                        new StructurePiece.BlockPoint(
+                                GenerationGrid.blockOriginX(cell)
+                                        + (GenerationGrid.CELL_SIZE_BLOCKS - transformedWidth) / 2,
+                                RoomCatalog.FLOOR_Y,
+                                GenerationGrid.blockOriginZ(cell)
+                                        + (GenerationGrid.CELL_SIZE_BLOCKS - transformedDepth) / 2),
+                        rotation,
+                        StructurePiece.Mirror.NONE);
+                for (Connector connector : placed.connectors()) {
+                    require(GenerationConnectionRules.hasBoundaryConnector(
+                                    placed,
+                                    cell,
+                                    gridDirection(connector.direction())),
+                            "sized room connector remains aligned after rotation");
+                }
+            }
             for (RoomDefinition.SpawnMarker marker : definition.spawnMarkers()) {
                 require(marker.x() >= 0 && marker.x() < definition.piece().width()
                                 && marker.y() >= 0 && marker.y() < definition.piece().height()
@@ -753,9 +800,10 @@ public final class GenerationArchitectureSelfCheck {
                     "room depth and region restrictions are enforced");
         }
         require(foundSpawnMarker, "room catalog includes deterministic spawn markers");
+        require(roomWidths.size() >= 3 && roomHeights.size() >= 4,
+                "room catalog exposes width and height diversity");
 
         long worldSeed = 0x0F0E0D0C0B0A0908L;
-        GenerationGrid.Cell cell = new GenerationGrid.Cell(-6, 9);
         RoomCatalog.Selection first = RoomCatalog.select(worldSeed, cell);
         RoomCatalog.Selection second = RoomCatalog.select(worldSeed, cell);
         require(first.kind() == second.kind()
@@ -764,11 +812,21 @@ public final class GenerationArchitectureSelfCheck {
                 "room selection is deterministic");
 
         RoomCatalog.Placement closedRoom = RoomCatalog.placement(worldSeed, cell);
+        int closedWidth = StructurePiece.transformedWidth(
+                closedRoom.piece().definition().width(),
+                closedRoom.piece().definition().depth(),
+                closedRoom.piece().rotation());
+        int closedDepth = StructurePiece.transformedDepth(
+                closedRoom.piece().definition().width(),
+                closedRoom.piece().definition().depth(),
+                closedRoom.piece().rotation());
         require(closedRoom.openDirections().isEmpty()
                         && closedRoom.piece().bounds().minBlockX()
                         == GenerationGrid.blockOriginX(cell)
+                                + (GenerationGrid.CELL_SIZE_BLOCKS - closedWidth) / 2
                         && closedRoom.piece().bounds().minBlockZ()
-                        == GenerationGrid.blockOriginZ(cell),
+                        == GenerationGrid.blockOriginZ(cell)
+                                + (GenerationGrid.CELL_SIZE_BLOCKS - closedDepth) / 2,
                 "room placement caps unused connectors within its owning cell");
     }
 
@@ -933,7 +991,7 @@ public final class GenerationArchitectureSelfCheck {
         GenerationGrid.Cell originCell = new GenerationGrid.Cell(0, 0);
         GenerationGrid.Cell farCell = new GenerationGrid.Cell(1_024, -2_048);
         require(VerticalCatalog.definitions().size() == 5,
-                "vertical catalog covers stairs, ladders, drops, and elevator placeholder");
+                "vertical catalog retains the five supported stair and shaft definitions");
         for (VerticalCatalog.VerticalKind kind : List.of(
                 VerticalCatalog.VerticalKind.STAIR_UP,
                 VerticalCatalog.VerticalKind.STAIR_DOWN,
@@ -959,7 +1017,9 @@ public final class GenerationArchitectureSelfCheck {
                 VerticalCatalog.VerticalKind.NONE,
                 VerticalCatalog.VerticalKind.STAIR_UP,
                 VerticalCatalog.VerticalKind.STAIR_DOWN,
-                VerticalCatalog.VerticalKind.LADDER_SHAFT);
+                VerticalCatalog.VerticalKind.LADDER_SHAFT,
+                VerticalCatalog.VerticalKind.DROP_SHAFT,
+                VerticalCatalog.VerticalKind.ELEVATOR_PLACEHOLDER);
         for (int x = -8; x <= 8; x++) {
             for (int z = -8; z <= 8; z++) {
                 VerticalCatalog.Selection selected = VerticalCatalog.select(
@@ -1004,6 +1064,11 @@ public final class GenerationArchitectureSelfCheck {
                         lowerOrigin.upperY(),
                         Math.toIntExact(lowerOrigin.piece().origin().z())),
                 "vertical selection owns the upper-floor opening");
+        require(VerticalCatalog.FLOOR_SPACING == 32
+                        && VerticalCatalog.floorY(-1) == -28
+                        && VerticalCatalog.floorY(0) == 4
+                        && VerticalCatalog.floorY(1) == 36,
+                "floor layers leave room for taller rooms and corridors");
 
         for (int floorIndex = VerticalCatalog.MIN_FLOOR;
                 floorIndex <= VerticalCatalog.MAX_FLOOR;
@@ -1329,6 +1394,16 @@ public final class GenerationArchitectureSelfCheck {
         fingerprint = Long.rotateLeft(fingerprint ^ bounds.minBlockX(), 31);
         fingerprint = Long.rotateLeft(fingerprint ^ bounds.minBlockZ(), 37);
         return Long.rotateLeft(fingerprint ^ bounds.maxYExclusive(), 41);
+    }
+
+    private static GenerationGrid.Direction gridDirection(Connector.Direction direction) {
+        return switch (direction) {
+            case NORTH -> GenerationGrid.Direction.NORTH;
+            case EAST -> GenerationGrid.Direction.EAST;
+            case SOUTH -> GenerationGrid.Direction.SOUTH;
+            case WEST -> GenerationGrid.Direction.WEST;
+            case UP, DOWN -> throw new IllegalArgumentException("expected horizontal room connector");
+        };
     }
 
     private static CorridorSelectionConfig onlyKindConfig(CorridorKind selectedKind) {

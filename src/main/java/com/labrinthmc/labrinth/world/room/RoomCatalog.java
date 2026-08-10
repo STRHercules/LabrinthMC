@@ -43,6 +43,8 @@ public final class RoomCatalog {
     private static final long SELECTION_LOCAL_X = 0x524F4F4D53454CL;
     private static final long SELECTION_LOCAL_Z = 0x524F4F4D535459L;
 
+    // Smaller rooms remain full-length on one axis so their retained doorway
+    // endpoints still land on a neighboring cell boundary.
     private static final List<RoomDefinition> DEFINITIONS = List.of(
             create(
                     RoomKind.EMPTY,
@@ -145,6 +147,110 @@ public final class RoomCatalog {
                     EnumSet.allOf(GenerationGrid.Direction.class),
                     "chests/rare_test",
                     List.of("rare/test_marker"),
+                    new StructurePiece.PlacementConditions(2, true)),
+            createSized(
+                    RoomKind.SMALL_CHAMBER,
+                    "small_chamber",
+                    4,
+                    StructurePiece.Rarity.COMMON,
+                    RoomDefinition.InteriorStyle.CHAMBER,
+                    32,
+                    6,
+                    CELL_SIZE,
+                    Set.of(GenerationGrid.Direction.NORTH, GenerationGrid.Direction.SOUTH),
+                    null,
+                    List.of("chamber/pillars"),
+                    new StructurePiece.PlacementConditions(1, true)),
+            createSized(
+                    RoomKind.MEDIUM_CHAMBER,
+                    "medium_chamber",
+                    3,
+                    StructurePiece.Rarity.UNCOMMON,
+                    RoomDefinition.InteriorStyle.CHAMBER,
+                    48,
+                    8,
+                    CELL_SIZE,
+                    Set.of(GenerationGrid.Direction.NORTH, GenerationGrid.Direction.SOUTH),
+                    null,
+                    List.of("chamber/pillars"),
+                    new StructurePiece.PlacementConditions(1, true)),
+            createSized(
+                    RoomKind.WIDE_CHAMBER,
+                    "wide_chamber",
+                    3,
+                    StructurePiece.Rarity.UNCOMMON,
+                    RoomDefinition.InteriorStyle.CHAMBER,
+                    CELL_SIZE,
+                    10,
+                    32,
+                    Set.of(GenerationGrid.Direction.EAST, GenerationGrid.Direction.WEST),
+                    null,
+                    List.of("chamber/pillars"),
+                    new StructurePiece.PlacementConditions(1, true)),
+            createSized(
+                    RoomKind.TALL_CHAMBER,
+                    "tall_chamber",
+                    2,
+                    StructurePiece.Rarity.UNCOMMON,
+                    RoomDefinition.InteriorStyle.CHAMBER,
+                    CELL_SIZE,
+                    12,
+                    CELL_SIZE,
+                    EnumSet.allOf(GenerationGrid.Direction.class),
+                    null,
+                    List.of("chamber/pillars"),
+                    new StructurePiece.PlacementConditions(2, true)),
+            createSized(
+                    RoomKind.GRAND_CHAMBER,
+                    "grand_chamber",
+                    1,
+                    StructurePiece.Rarity.RARE,
+                    RoomDefinition.InteriorStyle.CHAMBER,
+                    CELL_SIZE,
+                    14,
+                    CELL_SIZE,
+                    EnumSet.allOf(GenerationGrid.Direction.class),
+                    null,
+                    List.of("chamber/pillars"),
+                    new StructurePiece.PlacementConditions(2, true)),
+            createSized(
+                    RoomKind.SMALL_STORAGE_VARIANT,
+                    "small_storage_variant",
+                    3,
+                    StructurePiece.Rarity.COMMON,
+                    RoomDefinition.InteriorStyle.STORAGE,
+                    32,
+                    6,
+                    CELL_SIZE,
+                    Set.of(GenerationGrid.Direction.NORTH, GenerationGrid.Direction.SOUTH),
+                    "chests/small_storage",
+                    List.of("storage/shelves"),
+                    new StructurePiece.PlacementConditions(1, true)),
+            createSized(
+                    RoomKind.WIDE_GALLERY,
+                    "wide_gallery",
+                    2,
+                    StructurePiece.Rarity.UNCOMMON,
+                    RoomDefinition.InteriorStyle.LONG,
+                    CELL_SIZE,
+                    9,
+                    32,
+                    Set.of(GenerationGrid.Direction.EAST, GenerationGrid.Direction.WEST),
+                    null,
+                    List.of("long/trim"),
+                    new StructurePiece.PlacementConditions(1, true)),
+            createSized(
+                    RoomKind.TALL_ARCHIVE,
+                    "tall_archive",
+                    1,
+                    StructurePiece.Rarity.RARE,
+                    RoomDefinition.InteriorStyle.LONG,
+                    48,
+                    12,
+                    CELL_SIZE,
+                    Set.of(GenerationGrid.Direction.NORTH, GenerationGrid.Direction.SOUTH),
+                    "chests/utility",
+                    List.of("long/trim"),
                     new StructurePiece.PlacementConditions(2, true)));
 
     private static final Map<StructurePiece, RoomDefinition> BY_PIECE = createPieceMap();
@@ -461,14 +567,17 @@ public final class RoomCatalog {
             RegionDefinition region) {
         GenerationConnectionRules.LocalCenter center =
                 GenerationConnectionRules.localCellCenter(placed);
+        int width = definition.piece().width();
+        int depth = definition.piece().depth();
+        int height = definition.piece().height();
         BlockState state;
         if (localY == 0) {
             state = floorState(definition.interiorStyle(), localX, localZ);
-        } else if (localY == definition.piece().height() - 1) {
+        } else if (localY == height - 1) {
             state = isLight(localX, localZ, center)
                     ? Blocks.SEA_LANTERN.defaultBlockState()
                     : Blocks.DEEPSLATE_TILES.defaultBlockState();
-        } else if (isBoundary(localX, localZ)
+        } else if (isBoundary(localX, localZ, width, depth)
                 && !isOpenFaceCell(
                         placed,
                         definition,
@@ -477,17 +586,25 @@ public final class RoomCatalog {
                         localZ,
                         rotation,
                         openDirections,
-                        center)) {
+                        center,
+                        width,
+                        depth)) {
             state = Blocks.DEEPSLATE_BRICKS.defaultBlockState();
         } else if (isSpawnMarker(definition, localX, localY, localZ)) {
             state = Blocks.SOUL_TORCH.defaultBlockState();
         } else {
-            state = interiorState(definition.interiorStyle(), localX, localY, localZ);
+            state = interiorState(
+                    definition.interiorStyle(),
+                    localX,
+                    localY,
+                    localZ,
+                    width,
+                    depth);
         }
         return region.paletteState(
                 state,
                 localY,
-                definition.piece().height(),
+                height,
                 localX,
                 localZ);
     }
@@ -528,9 +645,9 @@ public final class RoomCatalog {
                 || (localZ == center.z() && localX % 8 == 4);
     }
 
-    private static boolean isBoundary(int localX, int localZ) {
-        return localX == 0 || localX == CELL_SIZE - 1
-                || localZ == 0 || localZ == CELL_SIZE - 1;
+    private static boolean isBoundary(int localX, int localZ, int width, int depth) {
+        return localX == 0 || localX == width - 1
+                || localZ == 0 || localZ == depth - 1;
     }
 
     private static boolean isOpenFaceCell(
@@ -541,7 +658,9 @@ public final class RoomCatalog {
             int localZ,
             StructurePiece.Rotation rotation,
             Set<GenerationGrid.Direction> openDirections,
-            GenerationConnectionRules.LocalCenter center) {
+            GenerationConnectionRules.LocalCenter center,
+            int width,
+            int depth) {
         // Match the four-block vertical aperture declared by every horizontal
         // connector. Keeping the ceiling and floor in the shell prevents a
         // room from exposing a taller hole than the hallway can actually use.
@@ -554,8 +673,8 @@ public final class RoomCatalog {
             }
             boolean atFace = switch (localDirection) {
                 case NORTH -> localZ == 0;
-                case EAST -> localX == CELL_SIZE - 1;
-                case SOUTH -> localZ == CELL_SIZE - 1;
+                case EAST -> localX == width - 1;
+                case SOUTH -> localZ == depth - 1;
                 case WEST -> localX == 0;
             };
             if (!atFace || !openDirections.contains(localDirection.rotated(rotation))) {
@@ -586,109 +705,124 @@ public final class RoomCatalog {
             RoomDefinition.InteriorStyle style,
             int localX,
             int localY,
-            int localZ) {
+            int localZ,
+            int width,
+            int depth) {
         return switch (style) {
             case EMPTY -> Blocks.AIR.defaultBlockState();
-            case STORAGE -> storageState(localX, localY, localZ);
-            case CHAMBER -> chamberState(localX, localY, localZ);
-            case UTILITY -> utilityState(localX, localY, localZ);
-            case CROSS -> crossState(localX, localY, localZ);
-            case LONG -> longState(localX, localY, localZ);
-            case MULTI_EXIT -> multiExitState(localX, localY, localZ);
-            case REWARD -> rewardState(localX, localY, localZ);
-            case DECORATIVE -> decorativeState(localX, localY, localZ);
-            case RARE -> rareState(localX, localY, localZ);
+            case STORAGE -> storageState(localX, localY, localZ, width, depth);
+            case CHAMBER -> chamberState(localX, localY, localZ, width, depth);
+            case UTILITY -> utilityState(localX, localY, localZ, width, depth);
+            case CROSS -> crossState(localX, localY, localZ, width, depth);
+            case LONG -> longState(localX, localY, localZ, width, depth);
+            case MULTI_EXIT -> multiExitState(localX, localY, localZ, width, depth);
+            case REWARD -> rewardState(localX, localY, localZ, width, depth);
+            case DECORATIVE -> decorativeState(localX, localY, localZ, width, depth);
+            case RARE -> rareState(localX, localY, localZ, width, depth);
         };
     }
 
-    private static BlockState storageState(int x, int y, int z) {
-        if (y == 1 && (x == 8 || x == 55) && z % 8 == 3) {
+    private static BlockState storageState(int x, int y, int z, int width, int depth) {
+        int sideInset = Math.max(3, width / 6);
+        if (y == 1 && (x == sideInset || x == width - 1 - sideInset) && z % 8 == 3) {
             return Blocks.BARREL.defaultBlockState();
         }
-        if (y == 1 && (x == 12 || x == 51) && z % 16 == 7) {
+        int chestInset = Math.max(4, width / 4);
+        if (y == 1 && (x == chestInset || x == width - 1 - chestInset) && z % 16 == 7) {
             return Blocks.CHEST.defaultBlockState();
         }
         return Blocks.AIR.defaultBlockState();
     }
 
-    private static BlockState chamberState(int x, int y, int z) {
-        if (y <= 3 && (x == 12 || x == 51) && (z == 12 || z == 51)) {
+    private static BlockState chamberState(int x, int y, int z, int width, int depth) {
+        int xInset = Math.max(4, width / 5);
+        int zInset = Math.max(4, depth / 5);
+        if (y <= 3 && (x == xInset || x == width - 1 - xInset)
+                && (z == zInset || z == depth - 1 - zInset)) {
             return Blocks.POLISHED_DEEPSLATE.defaultBlockState();
         }
         return Blocks.AIR.defaultBlockState();
     }
 
-    private static BlockState utilityState(int x, int y, int z) {
+    private static BlockState utilityState(int x, int y, int z, int width, int depth) {
         if (y != 1) {
             return Blocks.AIR.defaultBlockState();
         }
-        if (x == 12 && z == 12) {
+        int centerZ = depth / 3;
+        int step = Math.max(5, width / 7);
+        if (x == step && z == centerZ) {
             return Blocks.CRAFTING_TABLE.defaultBlockState();
         }
-        if (x == 20 && z == 12) {
+        if (x == step * 2 && z == centerZ) {
             return Blocks.BLAST_FURNACE.defaultBlockState();
         }
-        if (x == 28 && z == 12) {
+        if (x == step * 3 && z == centerZ) {
             return Blocks.ANVIL.defaultBlockState();
         }
-        if (x == 36 && z == 12) {
+        if (x == step * 4 && z == centerZ) {
             return Blocks.CAULDRON.defaultBlockState();
         }
-        if (x == 44 && z == 12) {
+        if (x == step * 5 && z == centerZ) {
             return Blocks.LEVER.defaultBlockState();
         }
         return Blocks.AIR.defaultBlockState();
     }
 
-    private static BlockState crossState(int x, int y, int z) {
-        if (y <= 2 && (x == 12 || x == 51) && (z == 12 || z == 51)) {
+    private static BlockState crossState(int x, int y, int z, int width, int depth) {
+        int xInset = Math.max(4, width / 5);
+        int zInset = Math.max(4, depth / 5);
+        if (y <= 2 && (x == xInset || x == width - 1 - xInset)
+                && (z == zInset || z == depth - 1 - zInset)) {
             return Blocks.CHISELED_DEEPSLATE.defaultBlockState();
         }
         return Blocks.AIR.defaultBlockState();
     }
 
-    private static BlockState longState(int x, int y, int z) {
-        if (y <= 2 && (x == 10 || x == 53) && z % 16 == 8) {
+    private static BlockState longState(int x, int y, int z, int width, int depth) {
+        int xInset = Math.max(4, width / 6);
+        if (y <= 2 && (x == xInset || x == width - 1 - xInset) && z % 16 == 8) {
             return Blocks.DEEPSLATE_BRICKS.defaultBlockState();
         }
         return Blocks.AIR.defaultBlockState();
     }
 
-    private static BlockState multiExitState(int x, int y, int z) {
-        if (y == 1 && x == CELL_SIZE / 2 && z == CELL_SIZE / 2) {
+    private static BlockState multiExitState(int x, int y, int z, int width, int depth) {
+        if (y == 1 && x == width / 2 && z == depth / 2) {
             return Blocks.LODESTONE.defaultBlockState();
         }
         return Blocks.AIR.defaultBlockState();
     }
 
-    private static BlockState rewardState(int x, int y, int z) {
-        if (y == 1 && x == CELL_SIZE / 2 && z == CELL_SIZE - 16) {
+    private static BlockState rewardState(int x, int y, int z, int width, int depth) {
+        if (y == 1 && x == width / 2 && z == Math.max(4, depth - 16)) {
             return Blocks.CHEST.defaultBlockState();
         }
         return Blocks.AIR.defaultBlockState();
     }
 
-    private static BlockState decorativeState(int x, int y, int z) {
-        if (y == 2 && x == CELL_SIZE / 2 && z == CELL_SIZE / 2) {
+    private static BlockState decorativeState(int x, int y, int z, int width, int depth) {
+        if (y == 2 && x == width / 2 && z == depth / 2) {
             return Blocks.COBWEB.defaultBlockState();
         }
-        if (y == 1 && (x == 16 || x == 47) && z == 16) {
+        if (y == 1 && (x == Math.max(3, width / 4) || x == width - 1 - Math.max(3, width / 4))
+                && z == Math.max(3, depth / 4)) {
             return Blocks.CHAIN.defaultBlockState();
         }
         return Blocks.AIR.defaultBlockState();
     }
 
-    private static BlockState rareState(int x, int y, int z) {
-        if (y == 1 && x == CELL_SIZE / 2 && z == CELL_SIZE / 2) {
+    private static BlockState rareState(int x, int y, int z, int width, int depth) {
+        if (y == 1 && x == width / 2 && z == depth / 2) {
             return Blocks.CHEST.defaultBlockState();
         }
-        if (y == 1 && x == 16 && z == 16) {
+        if (y == 1 && x == Math.max(4, width / 4) && z == Math.max(4, depth / 4)) {
             return Blocks.AMETHYST_BLOCK.defaultBlockState();
         }
-        if (y == 1 && x == 48 && z == 48) {
+        if (y == 1 && x == width - 1 - Math.max(4, width / 4)
+                && z == depth - 1 - Math.max(4, depth / 4)) {
             return Blocks.GILDED_BLACKSTONE.defaultBlockState();
         }
-        if (y == 1 && x == CELL_SIZE / 2 && z == CELL_SIZE / 2 - 4) {
+        if (y == 1 && x == width / 2 && z == Math.max(4, depth / 2 - 4)) {
             return Blocks.LEVER.defaultBlockState();
         }
         return Blocks.AIR.defaultBlockState();
@@ -704,13 +838,41 @@ public final class RoomCatalog {
             String lootPath,
             List<String> decorationPaths,
             StructurePiece.PlacementConditions placementConditions) {
+        return createPiece(
+                kind,
+                path,
+                weight,
+                rarity,
+                style,
+                CELL_SIZE,
+                HEIGHT,
+                CELL_SIZE,
+                directions,
+                lootPath,
+                decorationPaths,
+                placementConditions);
+    }
+
+    private static StructurePiece createPiece(
+            RoomKind kind,
+            String path,
+            int weight,
+            StructurePiece.Rarity rarity,
+            RoomDefinition.InteriorStyle style,
+            int width,
+            int height,
+            int depth,
+            Set<GenerationGrid.Direction> directions,
+            String lootPath,
+            List<String> decorationPaths,
+            StructurePiece.PlacementConditions placementConditions) {
         StructurePiece.Builder builder = StructurePiece.builder(
                         ResourceLocation.fromNamespaceAndPath("labrinth", "room/" + path),
                         ResourceLocation.fromNamespaceAndPath("labrinth", "generated/room/" + path),
                         StructurePiece.Kind.ROOM,
-                        CELL_SIZE,
-                        HEIGHT,
-                        CELL_SIZE)
+                        width,
+                        height,
+                        depth)
                 .weight(weight)
                 .rarity(rarity)
                 .rotations(EnumSet.allOf(StructurePiece.Rotation.class))
@@ -719,7 +881,7 @@ public final class RoomCatalog {
                 .allowedRegions(RegionCatalog.REGION_IDS)
                 .connectors(directions.stream()
                         .sorted()
-                        .map(RoomCatalog::connector)
+                        .map(direction -> connector(direction, width, depth))
                         .toList())
                 .placementConditions(placementConditions)
                 .decorations(new StructurePiece.DecorationRules(decorationPaths.stream()
@@ -742,6 +904,34 @@ public final class RoomCatalog {
             String lootPath,
             List<String> decorationPaths,
             StructurePiece.PlacementConditions placementConditions) {
+        return createSized(
+                kind,
+                path,
+                weight,
+                rarity,
+                style,
+                CELL_SIZE,
+                HEIGHT,
+                CELL_SIZE,
+                directions,
+                lootPath,
+                decorationPaths,
+                placementConditions);
+    }
+
+    private static RoomDefinition createSized(
+            RoomKind kind,
+            String path,
+            int weight,
+            StructurePiece.Rarity rarity,
+            RoomDefinition.InteriorStyle style,
+            int width,
+            int height,
+            int depth,
+            Set<GenerationGrid.Direction> directions,
+            String lootPath,
+            List<String> decorationPaths,
+            StructurePiece.PlacementConditions placementConditions) {
         return new RoomDefinition(
                 kind,
                 createPiece(
@@ -750,6 +940,9 @@ public final class RoomCatalog {
                         weight,
                         rarity,
                         style,
+                        width,
+                        height,
+                        depth,
                         directions,
                         lootPath,
                         decorationPaths,
@@ -780,9 +973,16 @@ public final class RoomCatalog {
     }
 
     private static Connector connector(GenerationGrid.Direction direction) {
+        return connector(direction, CELL_SIZE, CELL_SIZE);
+    }
+
+    private static Connector connector(
+            GenerationGrid.Direction direction,
+            int width,
+            int depth) {
         return switch (direction) {
             case NORTH -> new Connector(
-                    new Connector.Position(CELL_SIZE / 2, 1, 0),
+                    new Connector.Position(width / 2, 1, 0),
                     Connector.Direction.NORTH,
                     Connector.Type.STANDARD,
                     APERTURE_WIDTH,
@@ -790,7 +990,7 @@ public final class RoomCatalog {
                     StructurePiece.Rotation.NONE,
                     true);
             case EAST -> new Connector(
-                    new Connector.Position(CELL_SIZE, 1, CELL_SIZE / 2),
+                    new Connector.Position(width, 1, depth / 2),
                     Connector.Direction.EAST,
                     Connector.Type.STANDARD,
                     APERTURE_WIDTH,
@@ -798,7 +998,7 @@ public final class RoomCatalog {
                     StructurePiece.Rotation.NONE,
                     true);
             case SOUTH -> new Connector(
-                    new Connector.Position(CELL_SIZE / 2, 1, CELL_SIZE),
+                    new Connector.Position(width / 2, 1, depth),
                     Connector.Direction.SOUTH,
                     Connector.Type.STANDARD,
                     APERTURE_WIDTH,
@@ -806,7 +1006,7 @@ public final class RoomCatalog {
                     StructurePiece.Rotation.NONE,
                     true);
             case WEST -> new Connector(
-                    new Connector.Position(0, 1, CELL_SIZE / 2),
+                    new Connector.Position(0, 1, depth / 2),
                     Connector.Direction.WEST,
                     Connector.Type.STANDARD,
                     APERTURE_WIDTH,

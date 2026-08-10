@@ -370,12 +370,15 @@ Potential features include:
 * [x] Turn and junction corridor variants
 * [x] Dead-end corridor variant
 * [x] Wide and narrow corridor variants
+* [x] Curved, S-curve, U-turn, incline, decline, and staircase hallways
+* [x] Grand-width counterparts for the hallway shapes and junctions
 * [x] Weighted, configurable corridor selection
 * [x] Procedural room generation
+* [x] Variable-width and variable-height room variants
 * [x] Continuous chunk-local expansion
 * [x] Multi-story generation
 * [x] Stairways and vertical shafts
-* [ ] Intersections and junctions
+* [x] Intersections and junctions
 * [x] Region system
 * [x] Rare rooms
 * [x] Major landmarks
@@ -425,9 +428,10 @@ Because there might not be one.
 complete:** the `labrinth:labrinth` dimension uses deterministic 64-block
 generation cells and a mixed room-and-corridor catalog that re-materializes
 content as chunks load, including thousands of blocks from the origin without
-retaining a pre-generated layout. The catalog includes ten registered room
-styles—storage, utility, chamber, reward, decorative, and test variants—along
-with the Phase 4 corridor set. Room metadata carries weights, rarity, rotation,
+retaining a pre-generated layout. The catalog includes eighteen registered
+room styles—storage, utility, chamber, gallery, archive, reward, decorative,
+and test variants—with variable widths and heights, along with twenty-nine
+hallway/corridor shapes. Room metadata carries weights, rarity, rotation,
 region/depth gates, connectors, placement conditions, decorations, and loot
 references. Interiors are materialized chunk-locally with lighting, props,
 block variation, visible containers, interactive markers, and capped unmatched
@@ -440,11 +444,13 @@ Corrupted areas. Region-specific room/corridor pools, palettes, lighting
 outages, bounded decorations, and depth/elevation conditions are applied while
 preserving the same chunk-local ownership rules.
 
-The active vertical layer model uses 16-block floor spacing with a starting
-floor at Y 4, one floor below at Y -12, and one above at Y 20. Deterministic
-stair, ladder, drop, shaft, and elevator-placeholder pieces bridge adjacent
-layers. The dimension now spans Y -16 through 255, leaving the existing top
-bound unchanged while making the lower floor valid.
+The active vertical layer model uses 32-block floor spacing with a starting
+floor at Y 4, one floor below at Y -28, and one above at Y 36. The retained
+seven-by-seven stair, ladder, drop, and elevator-placeholder definitions bridge
+adjacent layers without adding alternate stairwell footprints. The stair route
+stays on the inner wall track instead of occupying the stairwell shell. The
+dimension now spans Y -32 through 255, leaving room for taller room variants
+while preserving the existing top bound.
 
 Logical depth is derived from distance, deterministic branch variation, region
 transitions, landmark progression, and floor offset. It gates rare room tiers,

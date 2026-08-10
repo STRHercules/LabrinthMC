@@ -2,6 +2,7 @@ package com.labrinthmc.labrinth.world.region;
 
 import com.labrinthmc.labrinth.world.generation.GenerationGrid;
 import com.labrinthmc.labrinth.world.generation.GenerationSeeds;
+import com.labrinthmc.labrinth.world.corridor.CorridorKind;
 import com.labrinthmc.labrinth.world.room.RoomKind;
 import java.util.Arrays;
 import java.util.List;
@@ -443,33 +444,66 @@ public final class RegionCatalog {
     }
 
     private static Set<ResourceLocation> rooms(RoomKind... kinds) {
-        return Arrays.stream(kinds)
+        java.util.Set<ResourceLocation> values = new java.util.HashSet<>(Arrays.stream(kinds)
                 .map(kind -> id("room/" + kind.name().toLowerCase(Locale.ROOT)))
-                .collect(java.util.stream.Collectors.toUnmodifiableSet());
+                .toList());
+        for (RoomKind kind : RoomKind.values()) {
+            if (isExpandedRoom(kind)) {
+                values.add(id("room/" + kind.name().toLowerCase(Locale.ROOT)));
+            }
+        }
+        return Set.copyOf(values);
     }
 
     private static Set<ResourceLocation> allRooms() {
         return rooms(RoomKind.values());
     }
 
+    private static boolean isExpandedRoom(RoomKind kind) {
+        return switch (kind) {
+            case EMPTY, SMALL_STORAGE, LARGE_CHAMBER, UTILITY, CROSS_ROOM,
+                    LONG_RECTANGULAR, MULTI_EXIT, DEAD_END_REWARD, DECORATIVE,
+                    RARE_TEST -> false;
+            default -> true;
+        };
+    }
+
     private static Set<ResourceLocation> corridors(String... paths) {
-        return Arrays.stream(paths)
+        java.util.Set<ResourceLocation> values = new java.util.HashSet<>(Arrays.stream(paths)
                 .map(path -> id("corridor/" + path))
-                .collect(java.util.stream.Collectors.toUnmodifiableSet());
+                .toList());
+        // Every region may use the expanded geometry set. Its own listed
+        // paths still determine the themed baseline, while the shared
+        // variants prevent a palette from collapsing to a tiny shape subset.
+        for (CorridorKind kind : CorridorKind.values()) {
+            if (isExpandedCorridor(kind)) {
+                values.add(id("corridor/" + corridorPath(kind)));
+            }
+        }
+        return Set.copyOf(values);
     }
 
     private static Set<ResourceLocation> allCorridors() {
-        return corridors(
-                "short_straight",
-                "medium_straight",
-                "long_straight",
-                "left_turn",
-                "right_turn",
-                "t_junction",
-                "four_way",
-                "dead_end",
-                "wide",
-                "narrow");
+        return Arrays.stream(CorridorKind.values())
+                .map(kind -> id("corridor/" + corridorPath(kind)))
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
+    }
+
+    private static String corridorPath(CorridorKind kind) {
+        return switch (kind) {
+            case WIDE_CORRIDOR -> "wide";
+            case NARROW_CORRIDOR -> "narrow";
+            default -> kind.name().toLowerCase(Locale.ROOT);
+        };
+    }
+
+    private static boolean isExpandedCorridor(CorridorKind kind) {
+        return switch (kind) {
+            case SHORT_STRAIGHT, MEDIUM_STRAIGHT, LONG_STRAIGHT, LEFT_TURN,
+                    RIGHT_TURN, T_JUNCTION, FOUR_WAY, DEAD_END, WIDE_CORRIDOR,
+                    NARROW_CORRIDOR -> false;
+            default -> true;
+        };
     }
 
     private static Set<ResourceLocation> tags(String tag) {

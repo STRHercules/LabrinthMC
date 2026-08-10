@@ -55,6 +55,9 @@ public record CorridorSelectionConfig(
 
     public static CorridorSelectionConfig defaults() {
         EnumMap<CorridorKind, Integer> weights = new EnumMap<>(CorridorKind.class);
+        for (CorridorKind kind : CorridorKind.values()) {
+            weights.put(kind, 1);
+        }
         weights.put(CorridorKind.SHORT_STRAIGHT, 3);
         weights.put(CorridorKind.MEDIUM_STRAIGHT, 4);
         weights.put(CorridorKind.LONG_STRAIGHT, 5);
@@ -65,6 +68,25 @@ public record CorridorSelectionConfig(
         weights.put(CorridorKind.DEAD_END, 2);
         weights.put(CorridorKind.WIDE_CORRIDOR, 2);
         weights.put(CorridorKind.NARROW_CORRIDOR, 2);
+        weights.put(CorridorKind.CURVED_LEFT, 3);
+        weights.put(CorridorKind.CURVED_RIGHT, 3);
+        weights.put(CorridorKind.S_CURVE, 2);
+        weights.put(CorridorKind.U_TURN, 1);
+        weights.put(CorridorKind.INCLINE, 2);
+        weights.put(CorridorKind.DECLINE, 2);
+        weights.put(CorridorKind.STAIRCASE_UP, 2);
+        weights.put(CorridorKind.STAIRCASE_DOWN, 2);
+        weights.put(CorridorKind.GRAND_STRAIGHT, 2);
+        weights.put(CorridorKind.GRAND_CURVED_LEFT, 2);
+        weights.put(CorridorKind.GRAND_CURVED_RIGHT, 2);
+        weights.put(CorridorKind.GRAND_S_CURVE, 1);
+        weights.put(CorridorKind.GRAND_U_TURN, 1);
+        weights.put(CorridorKind.GRAND_T_JUNCTION, 1);
+        weights.put(CorridorKind.GRAND_FOUR_WAY, 1);
+        weights.put(CorridorKind.GRAND_INCLINE, 1);
+        weights.put(CorridorKind.GRAND_DECLINE, 1);
+        weights.put(CorridorKind.GRAND_STAIRCASE_UP, 1);
+        weights.put(CorridorKind.GRAND_STAIRCASE_DOWN, 1);
         return new CorridorSelectionConfig(weights, DEFAULT_DEAD_END_CHANCE_PERCENT, 4);
     }
 
