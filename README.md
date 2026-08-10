@@ -1,5 +1,7 @@
 # The Labrinth
 
+![Banner](Pictures/labrinth-product-banner-go-deeper.png)
+
 > **There is no end. There is only another hallway.**
 
 **The Labrinth** is a Minecraft **NeoForge** mod for **Minecraft 1.21.1** that introduces an entirely new dimension composed of sprawling corridors, twisting hallways, interconnected rooms, hidden passages, and structures that seem to continue forever.
@@ -8,11 +10,15 @@ Rather than generating a traditional Minecraft world filled with open terrain, m
 
 Every direction leads deeper.
 
+![The Labrinth](Pictures/labrinth-main-product-poster.png)
+
 ---
 
-## 🌀 The Labrinth
+## The Labrinth
 
 The Labrinth is an enormous procedurally generated maze-like dimension built from interconnected pieces.
+
+![Dimension Feature Overview](Pictures/labrinth-dimension-feature-poster.png)
 
 Its world generation can create:
 
@@ -33,15 +39,19 @@ Its world generation can create:
 
 The goal is not to create a maze with a traditional entrance and exit.
 
+![Structural Systems Overview](Pictures/labrinth-overview-structural-systems-content.png)
+
 **The dimension itself is the maze.**
 
 As players continue exploring, new sections of the Labrinth generate around them, allowing the structure to sprawl across enormous distances without requiring the entire dimension to be designed by hand.
 
 ---
 
-## 🧱 Procedural Generation
+## Procedural Generation
 
 The Labrinth is assembled procedurally from a collection of modular rooms, corridors, connectors, structures, and environmental pieces.
+
+![Dimension Generation and Regions Overview](Pictures/labrinth-overview-dimension-generation-regions.png)
 
 Instead of simply repeating identical hallways, generation can take several factors into account:
 
@@ -64,9 +74,15 @@ A corridor that appears meaningless may eventually lead into something valuable.
 
 Or it may lead nowhere at all.
 
+![Bird's-Eye Procedural Map](Pictures/labrinth-schematic-01-birds-eye-procedural-map.png)
+
+![Floor, Corridor, and Vertical Construction](Pictures/labrinth-design-02-floor-corridor-vertical-construction.png)
+
+![Multi-Floor Sector Schematic](Pictures/labrinth-schematic-03-multi-floor-sector.png)
+
 ---
 
-## 🏚️ Rooms
+## Rooms
 
 Rooms are one of the primary building blocks of the Labrinth.
 
@@ -88,13 +104,17 @@ Rooms can also have individual rarity values, allowing unusual locations to beco
 
 Common utility rooms might appear frequently, while strange or highly valuable rooms could be separated by thousands of blocks.
 
+![Room Design and Content Planning](Pictures/labrinth-design-03-room-design-content-planning.png)
+
 ---
 
-## 🗺️ Regions
+## Regions
 
 Although the Labrinth is one continuous structure, not every part of it needs to look the same.
 
 Large portions of the dimension can belong to different **regions** or **themes** that influence what generates there.
+
+![Region Overview](Pictures/labrinth-region-overview-poster.png)
 
 Possible examples include:
 
@@ -124,9 +144,13 @@ Areas where the normal rules of the dimension begin to break down.
 
 Regions do not necessarily have hard borders. One environment may gradually transition into another as the player travels.
 
+![Regions Map](Pictures/labrinth-schematic-02-regions-map.png)
+
+![Regions and Depth Generation Rules](Pictures/labrinth-design-04-regions-depth-generation-rules.png)
+
 ---
 
-## 🚪 Exploration
+## Exploration
 
 The Labrinth is designed around exploration, uncertainty, and discovery.
 
@@ -149,9 +173,11 @@ Distance traveled should matter.
 
 The further a player ventures from familiar territory, the less predictable the dimension can become.
 
+![Bird's-Eye Multi-Floor Exploration](Pictures/labrinth-overview-birds-eye-multifloor-exploration.png)
+
 ---
 
-## 📍 Landmarks
+## Landmarks
 
 Rare landmarks provide recognizable locations within the otherwise confusing structure of the Labrinth.
 
@@ -172,9 +198,11 @@ Finding one should feel significant.
 
 Some landmarks may even influence generation around them.
 
+![Landmarks, Special Rooms, and Encounter Design](Pictures/labrinth-design-05-landmarks-special-rooms-encounter-design.png)
+
 ---
 
-## 🕯️ Atmosphere
+## Atmosphere
 
 The Labrinth should feel strange even when nothing is actively attacking the player.
 
@@ -201,7 +229,7 @@ Probably.
 
 ---
 
-## 👁️ Entities
+## Entities
 
 The Labrinth can support creatures designed specifically around enclosed environments.
 
@@ -225,7 +253,7 @@ Others may simply live there.
 
 ---
 
-## 🎁 Loot & Resources
+## Loot & Resources
 
 Exploration should provide meaningful rewards.
 
@@ -242,9 +270,11 @@ Loot may be influenced by:
 
 Rare rooms can contain unique items, equipment, building materials, artifacts, or resources connected directly to the Labrinth.
 
+![Loot, Hazards, and Entity Population](Pictures/labrinth-design-06-loot-hazards-entity-population.png)
+
 ---
 
-## 🧭 Getting Lost Is Part of the Experience
+## Getting Lost Is Part of the Experience
 
 The Labrinth is intentionally difficult to navigate.
 
@@ -267,9 +297,11 @@ Players might rely on:
 
 Exploration becomes less about reaching a destination and more about learning how to survive inside an environment that refuses to be easily understood.
 
+![Navigation, Secrets, and Player Guidance](Pictures/labrinth-design-07-navigation-secrets-player-guidance.png)
+
 ---
 
-## ⚙️ Technical Goals
+## Technical Goals
 
 The Labrinth is being designed for:
 
@@ -293,11 +325,15 @@ Major technical goals include:
 
 Performance is particularly important because the Labrinth may contain significantly more generated blocks and enclosed geometry than traditional terrain.
 
+![Content Pipeline, Build Workflow, and Validation](Pictures/labrinth-design-08-content-pipeline-build-workflow-validation.png)
+
 ---
 
-## 🧩 Modular Design
+## Modular Design
 
 One of the long-term goals of The Labrinth is to make its generation system expandable.
+
+![Dimension Architecture Overview](Pictures/labrinth-design-01-dimension-architecture-overview.png)
 
 New content should be capable of being added without rewriting the entire dimension generator.
 
@@ -320,7 +356,7 @@ This would allow the Labrinth's library of possible locations to grow continuous
 
 ---
 
-## 🔮 Planned Features
+## Planned Features
 
 The Labrinth is currently an early concept.
 
@@ -357,7 +393,7 @@ Potential features include:
 
 ---
 
-## ❓ What Is The Labrinth?
+## What Is The Labrinth?
 
 It is not a dungeon.
 
@@ -383,7 +419,7 @@ Because there might not be one.
 
 ---
 
-## 🚧 Development Status
+## Development Status
 
 **The Labrinth is currently in early development. Phases 5 through 10 are
 complete:** the `labrinth:labrinth` dimension uses deterministic 64-block
@@ -429,6 +465,6 @@ NeoForge
 
 ---
 
-## 📜 License
+## License
 
 *TBD*
