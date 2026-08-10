@@ -4,7 +4,7 @@ plugins {
 }
 
 group = project.findProperty("group")
-version = "0.1.1"
+version = "0.10.1"
 
 java {
     toolchain {
@@ -27,7 +27,7 @@ neoForge {
         data { data() }
     }
 
-    // Keep the first build tied to one common entry point; content registries belong to Phase 0.2.
+    // Keep registry wiring in the registry package; actual world content belongs to later phases.
     mods {
         "${project.findProperty("mod_id")}" {
             sourceSet sourceSets.main
@@ -37,6 +37,15 @@ neoForge {
 
 dependencies {
     implementation "net.neoforged:neoforge:${project.findProperty("neo_version")}"
+}
+
+// ModDevGradle adds transformed Minecraft classes to the main source set;
+// expose that same classpath to the framework-free architecture self-check.
+sourceSets {
+    test {
+        compileClasspath += sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.runtimeClasspath
+    }
 }
 
 tasks.withType(JavaCompile).configureEach {
@@ -56,4 +65,14 @@ tasks.processResources.configure {
     filesMatching("META-INF/neoforge.mods.toml") {
         expand(project.properties)
     }
+}
+
+tasks.register("generationSelfCheck", JavaExec) {
+    dependsOn(tasks.testClasses)
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.labrinthmc.labrinth.world.generation.GenerationArchitectureSelfCheck"
+}
+
+tasks.named("check") {
+    dependsOn("generationSelfCheck")
 }

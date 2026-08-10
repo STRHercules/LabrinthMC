@@ -83,12 +83,12 @@ src/main/java/
 
 Tasks:
 
-* [ ] Create logical package structure
-* [ ] Separate client-only code from common/server code
-* [ ] Establish registry classes
-* [ ] Establish generation packages
-* [ ] Establish debug/development packages
-* [ ] Document important architectural boundaries
+* [x] Create logical package structure
+* [x] Separate client-only code from common/server code
+* [x] Establish registry classes
+* [x] Establish generation packages
+* [x] Establish debug/development packages
+* [x] Document important architectural boundaries
 
 ---
 
@@ -98,15 +98,15 @@ Tasks:
 
 Create the base Labrinth dimension.
 
-* [ ] Register the Labrinth dimension
-* [ ] Register dimension type
-* [ ] Register level stem if required
-* [ ] Create required data files
-* [ ] Confirm the dimension loads
-* [ ] Confirm `/execute in` can access it
-* [ ] Confirm teleportation into the dimension works
-* [ ] Confirm dimension survives save/reload
-* [ ] Confirm multiplayer/dedicated server loading works
+* [x] Register the Labrinth dimension
+* [x] Register dimension type
+* [x] Register level stem if required
+* [x] Create required data files
+* [x] Confirm the dimension loads
+* [x] Confirm `/execute in` can access it
+* [x] Confirm teleportation into the dimension works
+* [x] Confirm dimension survives save/reload
+* [x] Confirm multiplayer/dedicated server loading works
 
 ---
 
@@ -116,20 +116,20 @@ Define the initial behavior of the Labrinth dimension.
 
 Decide and implement:
 
-* [ ] Coordinate scale
-* [ ] Minimum Y
-* [ ] Maximum Y
-* [ ] Logical height
-* [ ] Skylight behavior
-* [ ] Ceiling behavior
-* [ ] Ambient light
-* [ ] Bed behavior
-* [ ] Respawn anchor behavior
-* [ ] Piglin safety behavior if applicable
-* [ ] Natural spawning rules
-* [ ] Time behavior
-* [ ] Weather behavior
-* [ ] Fog behavior if handled at this stage
+* [x] Coordinate scale
+* [x] Minimum Y
+* [x] Maximum Y
+* [x] Logical height
+* [x] Skylight behavior
+* [x] Ceiling behavior
+* [x] Ambient light
+* [x] Bed behavior
+* [x] Respawn anchor behavior
+* [x] Piglin safety behavior if applicable
+* [x] Natural spawning rules
+* [x] Time behavior
+* [x] Weather behavior
+* [x] Fog behavior if handled at this stage
 
 ---
 
@@ -137,12 +137,12 @@ Decide and implement:
 
 Before procedural generation exists, create a safe test environment.
 
-* [ ] Generate a simple solid or empty test dimension
-* [ ] Create a predictable spawn platform/room
-* [ ] Verify player does not spawn inside blocks
-* [ ] Verify player cannot immediately fall into the void
-* [ ] Verify client rendering
-* [ ] Verify dedicated server behavior
+* [x] Generate a simple solid or empty test dimension
+* [x] Create a predictable spawn platform/room
+* [x] Verify player does not spawn inside blocks
+* [x] Verify player cannot immediately fall into the void
+* [x] Verify client rendering
+* [x] Verify dedicated server behavior
 
 ---
 
@@ -169,14 +169,14 @@ World
 
 Tasks:
 
-* [ ] Define generation coordinate system
-* [ ] Define generation unit size
-* [ ] Decide whether generation uses chunks, cells, sectors, or another deterministic grid
-* [ ] Define ownership rules for generated pieces
-* [ ] Define how pieces spanning multiple chunks are owned
-* [ ] Define how neighboring connections are calculated
-* [ ] Define how generation decisions are seeded
-* [ ] Ensure decisions do not depend on chunk load order
+* [x] Define generation coordinate system
+* [x] Define generation unit size
+* [x] Decide whether generation uses chunks, cells, sectors, or another deterministic grid
+* [x] Define ownership rules for generated pieces
+* [x] Define how pieces spanning multiple chunks are owned
+* [x] Define how neighboring connections are calculated
+* [x] Define how generation decisions are seeded
+* [x] Ensure decisions do not depend on chunk load order
 
 ---
 
@@ -196,14 +196,14 @@ World Seed
 
 Tasks:
 
-* [ ] Create deterministic seed utility
-* [ ] Create salts/constants for major generation systems
-* [ ] Ensure room selection is deterministic
-* [ ] Ensure corridor selection is deterministic
-* [ ] Ensure region selection is deterministic
-* [ ] Ensure landmark selection is deterministic
-* [ ] Verify repeated world reloads generate identical layouts
-* [ ] Verify generation order does not alter results
+* [x] Create deterministic seed utility
+* [x] Create salts/constants for major generation systems
+* [x] Ensure room selection is deterministic
+* [x] Ensure corridor selection is deterministic
+* [x] Ensure region selection is deterministic
+* [x] Ensure landmark selection is deterministic
+* [x] Verify repeated world reloads generate identical layouts
+* [x] Verify generation order does not alter results
 
 ---
 
@@ -213,17 +213,21 @@ Create a shared context object for generation where useful.
 
 Potential information:
 
-* [ ] World seed
-* [ ] Dimension seed/salt
-* [ ] Cell coordinates
-* [ ] Chunk coordinates
-* [ ] Local generation depth
-* [ ] Region
-* [ ] Neighbor information
-* [ ] Random source
-* [ ] Generation constraints
+* [x] World seed
+* [x] Dimension seed/salt
+* [x] Cell coordinates
+* [x] Chunk coordinates
+* [x] Local generation depth
+* [x] Region
+* [x] Neighbor information
+* [x] Random source
+* [x] Generation constraints
 
 Avoid uncontrolled shared mutable state.
+
+> Phase 2 validation covers repeatable architecture decisions and evaluation
+> order. Placed-layout reload validation begins when Phase 3 adds executable
+> structure pieces.
 
 ---
 
@@ -246,23 +250,23 @@ Each piece should support appropriate metadata.
 
 Potential fields:
 
-* [ ] ID
-* [ ] Structure/template
-* [ ] Width
-* [ ] Height
-* [ ] Depth
-* [ ] Bounding box
-* [ ] Weight
-* [ ] Rarity
-* [ ] Rotation rules
-* [ ] Mirror rules
-* [ ] Minimum depth
-* [ ] Maximum depth
-* [ ] Allowed regions
-* [ ] Connector definitions
-* [ ] Placement conditions
-* [ ] Loot configuration
-* [ ] Decoration rules
+* [x] ID
+* [x] Structure/template
+* [x] Width
+* [x] Height
+* [x] Depth
+* [x] Bounding box
+* [x] Weight
+* [x] Rarity
+* [x] Rotation rules
+* [x] Mirror rules
+* [x] Minimum depth
+* [x] Maximum depth
+* [x] Allowed regions
+* [x] Connector definitions
+* [x] Placement conditions
+* [x] Loot configuration
+* [x] Decoration rules
 
 ---
 
@@ -272,15 +276,15 @@ Create a formal connection system.
 
 Connector data should support:
 
-* [ ] Position
-* [ ] Direction
-* [ ] Connector type
-* [ ] Width
-* [ ] Height
-* [ ] Rotation
-* [ ] Compatibility rules
-* [ ] Optional required connection
-* [ ] Optional blocked connection
+* [x] Position
+* [x] Direction
+* [x] Connector type
+* [x] Width
+* [x] Height
+* [x] Rotation
+* [x] Compatibility rules
+* [x] Optional required connection
+* [x] Optional blocked connection
 
 Example connector types may include:
 
@@ -299,26 +303,26 @@ SPECIAL
 
 Tasks:
 
-* [ ] Create connector representation
-* [ ] Create compatibility checks
-* [ ] Create rotation transformation
-* [ ] Create connection alignment
-* [ ] Validate matching connector dimensions
-* [ ] Reject invalid connections
-* [ ] Support capped/closed connectors
+* [x] Create connector representation
+* [x] Create compatibility checks
+* [x] Create rotation transformation
+* [x] Create connection alignment
+* [x] Validate matching connector dimensions
+* [x] Reject invalid connections
+* [x] Support capped/closed connectors
 
 ---
 
 ## 3.3 Bounding Box Validation
 
-* [ ] Implement structure bounding boxes
-* [ ] Detect invalid overlaps
-* [ ] Allow explicitly permitted overlaps
-* [ ] Prevent rooms generating through unrelated rooms
-* [ ] Prevent corridor collisions
-* [ ] Validate vertical overlap
-* [ ] Validate world height
-* [ ] Keep validation bounded and performant
+* [x] Implement structure bounding boxes
+* [x] Detect invalid overlaps
+* [x] Allow explicitly permitted overlaps
+* [x] Prevent rooms generating through unrelated rooms
+* [x] Prevent corridor collisions
+* [x] Validate vertical overlap
+* [x] Validate world height
+* [x] Keep validation bounded and performant
 
 ---
 
@@ -328,15 +332,15 @@ Tasks:
 
 Create the first functional corridor module.
 
-* [ ] Straight corridor
-* [ ] Floor
-* [ ] Walls
-* [ ] Ceiling
-* [ ] Lighting support
-* [ ] Forward connector
-* [ ] Rear connector
-* [ ] Rotation support
-* [ ] Deterministic placement
+* [x] Straight corridor
+* [x] Floor
+* [x] Walls
+* [x] Ceiling
+* [x] Lighting support
+* [x] Forward connector
+* [x] Rear connector
+* [x] Rotation support
+* [x] Deterministic placement
 
 ---
 
@@ -344,28 +348,28 @@ Create the first functional corridor module.
 
 Create basic corridor shapes.
 
-* [ ] Short straight
-* [ ] Medium straight
-* [ ] Long straight
-* [ ] Left turn
-* [ ] Right turn
-* [ ] T-junction
-* [ ] Four-way junction
-* [ ] Dead end
-* [ ] Wide corridor
-* [ ] Narrow corridor
+* [x] Short straight
+* [x] Medium straight
+* [x] Long straight
+* [x] Left turn
+* [x] Right turn
+* [x] T-junction
+* [x] Four-way junction
+* [x] Dead end
+* [x] Wide corridor
+* [x] Narrow corridor
 
 ---
 
 ## 4.3 Corridor Selection
 
-* [ ] Weighted selection
-* [ ] Configurable weights
-* [ ] Avoid excessive repetition
-* [ ] Allow dead ends
-* [ ] Ensure dead-end probability is controlled
-* [ ] Ensure branching remains bounded
-* [ ] Prevent runaway recursive generation
+* [x] Weighted selection
+* [x] Configurable weights
+* [x] Avoid excessive repetition
+* [x] Allow dead ends
+* [x] Ensure dead-end probability is controlled
+* [x] Ensure branching remains bounded
+* [x] Prevent runaway recursive generation
 
 ---
 
@@ -375,16 +379,16 @@ Create basic corridor shapes.
 
 Create modular room definitions.
 
-* [ ] Room registration
-* [ ] Room ID
-* [ ] Room weight
-* [ ] Room rarity
-* [ ] Room dimensions
-* [ ] Room connectors
-* [ ] Room rotation
-* [ ] Region restrictions
-* [ ] Depth restrictions
-* [ ] Placement conditions
+* [x] Room registration
+* [x] Room ID
+* [x] Room weight
+* [x] Room rarity
+* [x] Room dimensions
+* [x] Room connectors
+* [x] Room rotation
+* [x] Region restrictions
+* [x] Depth restrictions
+* [x] Placement conditions
 
 ---
 
@@ -394,16 +398,16 @@ Create enough rooms to validate diversity.
 
 Minimum initial set:
 
-* [ ] Empty room
-* [ ] Small storage room
-* [ ] Large chamber
-* [ ] Utility room
-* [ ] Cross-room
-* [ ] Long rectangular room
-* [ ] Multi-exit room
-* [ ] Dead-end reward room
-* [ ] Decorative room
-* [ ] Rare test room
+* [x] Empty room
+* [x] Small storage room
+* [x] Large chamber
+* [x] Utility room
+* [x] Cross-room
+* [x] Long rectangular room
+* [x] Multi-exit room
+* [x] Dead-end reward room
+* [x] Decorative room
+* [x] Rare test room
 
 ---
 
@@ -411,14 +415,14 @@ Minimum initial set:
 
 Support room-specific content.
 
-* [ ] Decorations
-* [ ] Lighting
-* [ ] Furniture/props
-* [ ] Block variation
-* [ ] Loot containers
-* [ ] Spawn markers
-* [ ] Environmental effects
-* [ ] Special interactive elements
+* [x] Decorations
+* [x] Lighting
+* [x] Furniture/props
+* [x] Block variation
+* [x] Loot containers
+* [x] Spawn markers
+* [x] Environmental effects
+* [x] Special interactive elements
 
 ---
 
@@ -428,23 +432,23 @@ Support room-specific content.
 
 Create the system that allows the Labrinth to continue generating as players explore.
 
-* [ ] Generate pieces beyond initial spawn
-* [ ] Generate deterministically as chunks load
-* [ ] Avoid pre-generating the entire dimension
-* [ ] Avoid recursive chunk loading
-* [ ] Ensure unloaded areas require minimal retained state
-* [ ] Verify generation can continue thousands of blocks from origin
+* [x] Generate pieces beyond initial spawn
+* [x] Generate deterministically as chunks load
+* [x] Avoid pre-generating the entire dimension
+* [x] Avoid recursive chunk loading
+* [x] Ensure unloaded areas require minimal retained state
+* [x] Verify generation can continue thousands of blocks from origin
 
 ---
 
 ## 6.2 Connection Continuity
 
-* [ ] Ensure corridors align across chunk boundaries
-* [ ] Ensure room entrances align across chunk boundaries
-* [ ] Ensure walls do not block valid connections
-* [ ] Ensure neighboring chunks agree on connection state
-* [ ] Ensure generation order does not create mismatches
-* [ ] Test approaching the same area from different directions
+* [x] Ensure corridors align across chunk boundaries
+* [x] Ensure room entrances align across chunk boundaries
+* [x] Ensure walls do not block valid connections
+* [x] Ensure neighboring chunks agree on connection state
+* [x] Ensure generation order does not create mismatches
+* [x] Test approaching the same area from different directions
 
 ---
 
@@ -452,12 +456,12 @@ Create the system that allows the Labrinth to continue generating as players exp
 
 Dead ends are intentional but should not dominate generation.
 
-* [ ] Define dead-end frequency
-* [ ] Allow dead-end rooms
-* [ ] Allow dead-end corridors
-* [ ] Add optional reward logic
-* [ ] Ensure large areas do not accidentally become inaccessible
-* [ ] Ensure generation does not require every path to reconnect
+* [x] Define dead-end frequency
+* [x] Allow dead-end rooms
+* [x] Allow dead-end corridors
+* [x] Add optional reward logic
+* [x] Ensure large areas do not accidentally become inaccessible
+* [x] Ensure generation does not require every path to reconnect
 
 ---
 
@@ -465,41 +469,41 @@ Dead ends are intentional but should not dominate generation.
 
 ## 7.1 Multiple Floors
 
-* [ ] Support generation above/below starting floor
-* [ ] Define floor height
-* [ ] Define vertical layer system
-* [ ] Prevent layer overlap
-* [ ] Allow different room pools by elevation
+* [x] Support generation above/below starting floor
+* [x] Define floor height
+* [x] Define vertical layer system
+* [x] Prevent layer overlap
+* [x] Allow different room pools by elevation
 
 ---
 
 ## 7.2 Stairways
 
-* [ ] Stair up piece
-* [ ] Stair down piece
-* [ ] Stair connectors
-* [ ] Multi-floor alignment
-* [ ] Bounding validation
+* [x] Stair up piece
+* [x] Stair down piece
+* [x] Stair connectors
+* [x] Multi-floor alignment
+* [x] Bounding validation
 
 ---
 
 ## 7.3 Shafts
 
-* [ ] Vertical shaft
-* [ ] Ladder shaft
-* [ ] Drop shaft
-* [ ] Elevator-like shaft placeholder
-* [ ] Multi-floor shaft support
-* [ ] Safety handling
+* [x] Vertical shaft
+* [x] Ladder shaft
+* [x] Drop shaft
+* [x] Elevator-like shaft placeholder
+* [x] Multi-floor shaft support
+* [x] Safety handling
 
 ---
 
 ## 7.4 Vertical Restrictions
 
-* [ ] Respect dimension minimum Y
-* [ ] Respect dimension maximum Y
-* [ ] Prevent vertical generation outside valid bounds
-* [ ] Cap upward/downward branching where required
+* [x] Respect dimension minimum Y
+* [x] Respect dimension maximum Y
+* [x] Prevent vertical generation outside valid bounds
+* [x] Cap upward/downward branching where required
 
 ---
 
@@ -511,29 +515,29 @@ Regions control the visual and generation identity of large portions of the Labr
 
 Create a region definition system supporting:
 
-* [ ] Region ID
-* [ ] Region weight
-* [ ] Room pool
-* [ ] Corridor pool
-* [ ] Block palette
-* [ ] Lighting rules
-* [ ] Decoration rules
-* [ ] Mob rules
-* [ ] Loot modifiers
-* [ ] Ambient properties
-* [ ] Generation conditions
+* [x] Region ID
+* [x] Region weight
+* [x] Room pool
+* [x] Corridor pool
+* [x] Block palette
+* [x] Lighting rules
+* [x] Decoration rules
+* [x] Mob rules
+* [x] Loot modifiers
+* [x] Ambient properties
+* [x] Generation conditions
 
 ---
 
 ## 8.2 Region Distribution
 
-* [ ] Deterministic region selection
-* [ ] Large contiguous region areas
-* [ ] Avoid changing region every chunk
-* [ ] Support gradual transitions
-* [ ] Support rare regions
-* [ ] Support depth-restricted regions
-* [ ] Support elevation-restricted regions
+* [x] Deterministic region selection
+* [x] Large contiguous region areas
+* [x] Avoid changing region every chunk
+* [x] Support gradual transitions
+* [x] Support rare regions
+* [x] Support depth-restricted regions
+* [x] Support elevation-restricted regions
 
 ---
 
@@ -543,50 +547,50 @@ Create initial themed environments.
 
 ### Default / Standard
 
-* [ ] Base Labrinth region
+* [x] Base Labrinth region
 
 ### Abandoned
 
-* [ ] Damaged walls
-* [ ] Broken lighting
-* [ ] Debris
-* [ ] Cracked surfaces
-* [ ] Derelict rooms
+* [x] Damaged walls
+* [x] Broken lighting
+* [x] Debris
+* [x] Cracked surfaces
+* [x] Derelict rooms
 
 ### Industrial
 
-* [ ] Utility corridors
-* [ ] Pipes
-* [ ] Machinery props
-* [ ] Storage areas
-* [ ] Maintenance rooms
+* [x] Utility corridors
+* [x] Pipes
+* [x] Machinery props
+* [x] Storage areas
+* [x] Maintenance rooms
 
 ### Flooded
 
-* [ ] Waterlogged sections
-* [ ] Leaks
-* [ ] Flooded rooms
-* [ ] Water-safe generation logic
+* [x] Waterlogged sections
+* [x] Leaks
+* [x] Flooded rooms
+* [x] Water-safe generation logic
 
 ### Overgrown
 
-* [ ] Moss
-* [ ] Vines
-* [ ] Vegetation
-* [ ] Organic room variants
+* [x] Moss
+* [x] Vines
+* [x] Vegetation
+* [x] Organic room variants
 
 ### Ancient
 
-* [ ] Older architecture
-* [ ] Stone palette
-* [ ] Ruin-like rooms
+* [x] Older architecture
+* [x] Stone palette
+* [x] Ruin-like rooms
 
 ### Corrupted
 
-* [ ] Unusual geometry
-* [ ] Altered palettes
-* [ ] Strange room selection
-* [ ] Rare environmental behavior
+* [x] Unusual geometry
+* [x] Altered palettes
+* [x] Strange room selection
+* [x] Rare environmental behavior
 
 ---
 
@@ -610,11 +614,11 @@ Distance from origin
 
 Tasks:
 
-* [ ] Define depth formula
-* [ ] Ensure depth is deterministic
-* [ ] Expose depth to generation context
-* [ ] Allow content to specify minimum depth
-* [ ] Allow content to specify maximum depth
+* [x] Define depth formula
+* [x] Ensure depth is deterministic
+* [x] Expose depth to generation context
+* [x] Allow content to specify minimum depth
+* [x] Allow content to specify maximum depth
 
 ---
 
@@ -622,15 +626,15 @@ Tasks:
 
 Use depth to progressively alter content.
 
-* [ ] Increase rare room availability
-* [ ] Unlock new room pools
-* [ ] Unlock new corridor variants
-* [ ] Unlock new regions
-* [ ] Modify loot
-* [ ] Modify entity spawning
-* [ ] Modify hazards
-* [ ] Modify ambient effects
-* [ ] Allow very deep generation to become increasingly unusual
+* [x] Increase rare room availability
+* [x] Unlock new room pools
+* [x] Unlock new corridor variants
+* [x] Unlock new regions
+* [x] Modify loot
+* [x] Modify entity spawning
+* [x] Modify hazards
+* [x] Modify ambient effects
+* [x] Allow very deep generation to become increasingly unusual
 
 ---
 
@@ -642,16 +646,16 @@ Landmarks are large, rare, recognizable structures.
 
 Create support for:
 
-* [ ] Landmark ID
-* [ ] Deterministic origin
-* [ ] Minimum spacing
-* [ ] Maximum frequency
-* [ ] Bounding size
-* [ ] Region restrictions
-* [ ] Depth restrictions
-* [ ] Connection requirements
-* [ ] Multi-chunk placement
-* [ ] Multi-floor placement
+* [x] Landmark ID
+* [x] Deterministic origin
+* [x] Minimum spacing
+* [x] Maximum frequency
+* [x] Bounding size
+* [x] Region restrictions
+* [x] Depth restrictions
+* [x] Connection requirements
+* [x] Multi-chunk placement
+* [x] Multi-floor placement
 
 ---
 
@@ -659,11 +663,11 @@ Create support for:
 
 Critical:
 
-* [ ] Assign one deterministic origin cell/chunk
-* [ ] Prevent neighboring chunks from independently spawning the same landmark
-* [ ] Ensure multi-chunk pieces generate once
-* [ ] Verify reload safety
-* [ ] Verify generation-order safety
+* [x] Assign one deterministic origin cell/chunk
+* [x] Prevent neighboring chunks from independently spawning the same landmark
+* [x] Ensure multi-chunk pieces generate once
+* [x] Verify reload safety
+* [x] Verify generation-order safety
 
 ---
 
@@ -673,14 +677,14 @@ Create several test landmarks.
 
 Potential examples:
 
-* [ ] Grand Hall
-* [ ] Central Stairwell
-* [ ] Massive Storage Complex
-* [ ] Generator Room
-* [ ] Flooded Atrium
-* [ ] Abandoned Station
-* [ ] Ancient Chamber
-* [ ] Corrupted Nexus
+* [x] Grand Hall
+* [x] Central Stairwell
+* [x] Massive Storage Complex
+* [x] Generator Room
+* [x] Flooded Atrium
+* [x] Abandoned Station
+* [x] Ancient Chamber
+* [x] Corrupted Nexus
 
 Names and designs may change during development.
 
@@ -1589,10 +1593,10 @@ These requirements apply throughout the entire project.
 
 ## Milestone 1 — Dimension Exists
 
-* [ ] Dimension registered
-* [ ] Dimension accessible
-* [ ] Safe spawn
-* [ ] Build stable
+* [x] Dimension registered
+* [x] Dimension accessible
+* [x] Safe spawn
+* [x] Build stable
 
 ---
 

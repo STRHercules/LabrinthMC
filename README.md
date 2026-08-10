@@ -326,22 +326,30 @@ The Labrinth is currently an early concept.
 
 Potential features include:
 
-* [ ] Custom Labrinth dimension
-* [ ] Procedural corridor generation
-* [ ] Procedural room generation
+* [x] Custom Labrinth dimension
+* [x] First deterministic straight corridor
+* [x] Short straight corridor variant
+* [x] Medium straight corridor variant
+* [x] Long straight corridor variant
+* [x] Turn and junction corridor variants
+* [x] Dead-end corridor variant
+* [x] Wide and narrow corridor variants
+* [x] Weighted, configurable corridor selection
+* [x] Procedural room generation
+* [x] Continuous chunk-local expansion
+* [x] Multi-story generation
+* [x] Stairways and vertical shafts
 * [ ] Intersections and junctions
-* [ ] Multi-story generation
-* [ ] Stairways and vertical shafts
-* [ ] Region system
-* [ ] Rare rooms
-* [ ] Major landmarks
+* [x] Region system
+* [x] Rare rooms
+* [x] Major landmarks
 * [ ] Custom loot
 * [ ] Custom blocks
 * [ ] Custom entities
 * [ ] Environmental hazards
 * [ ] Ambient events
 * [ ] Dimension-specific resources
-* [ ] Progressively stranger distant regions
+* [x] Progressively stranger distant regions
 * [ ] Configurable generation settings
 * [ ] Datapack support
 * [ ] Multiplayer support
@@ -377,7 +385,42 @@ Because there might not be one.
 
 ## 🚧 Development Status
 
-**The Labrinth is currently in early development/concept development.**
+**The Labrinth is currently in early development. Phases 5 through 10 are
+complete:** the `labrinth:labrinth` dimension uses deterministic 64-block
+generation cells and a mixed room-and-corridor catalog that re-materializes
+content as chunks load, including thousands of blocks from the origin without
+retaining a pre-generated layout. The catalog includes ten registered room
+styles—storage, utility, chamber, reward, decorative, and test variants—along
+with the Phase 4 corridor set. Room metadata carries weights, rarity, rotation,
+region/depth gates, connectors, placement conditions, decorations, and loot
+references. Interiors are materialized chunk-locally with lighting, props,
+block variation, visible containers, interactive markers, and capped unmatched
+connectors; no neighboring chunks are loaded during selection or rendering.
+
+The active region model resolves one immutable region per owning cell from a
+coarse 512-block field. The standard origin core transitions gradually into
+weighted Abandoned, Industrial, Flooded, Overgrown, Ancient, and rare
+Corrupted areas. Region-specific room/corridor pools, palettes, lighting
+outages, bounded decorations, and depth/elevation conditions are applied while
+preserving the same chunk-local ownership rules.
+
+The active vertical layer model uses 16-block floor spacing with a starting
+floor at Y 4, one floor below at Y -12, and one above at Y 20. Deterministic
+stair, ladder, drop, shaft, and elevator-placeholder pieces bridge adjacent
+layers. The dimension now spans Y -16 through 255, leaving the existing top
+bound unchanged while making the lower floor valid.
+
+Logical depth is derived from distance, deterministic branch variation, region
+transitions, landmark progression, and floor offset. It gates rare room tiers,
+weights branching corridor variants, selects depth-eligible regions, and exposes
+loot, entity, hazard, ambient, and unusualness modifiers through each content
+placement.
+
+Eight initial landmark definitions are selected once from canonical 32-cell
+sector origins. Connection requirements, region/depth/floor restrictions, and
+half-open multi-chunk bounds are validated before selection. Intersecting chunks
+only rematerialize the origin-owned landmark, and ordinary rooms, corridors, and
+vertical pieces yield to its bounds.
 
 Features described in this README represent the intended direction of the project and may change substantially as the generation system is developed.
 
