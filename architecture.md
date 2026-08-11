@@ -16,22 +16,21 @@ interior spaces rather than open terrain, biomes, mountains, or oceans. The
 dimension is the maze. It is intended to expand as players explore, without
 requiring the entire layout to be authored in advance.
 
-The README describes the current state as early development with Phase 2
-complete. The current implementation includes the fixed-time, enclosed
-dimension, the safe flat spawn platform, and the deterministic generation
-architecture. Procedural rooms and corridors remain planned work. The
-architecture below therefore distinguishes shipped contracts from target
-content systems.
+The current implementation includes the fixed-time, enclosed dimension, the
+deterministic generation architecture, chunk-local rooms and corridors,
+multi-floor pieces, regions, depth, landmarks, and origin-owned compound
+structures. The architecture below distinguishes shipped contracts from
+future content systems such as custom blocks and datapack authoring.
 
 | Area | Current repository state | Architectural target |
 | --- | --- | --- |
 | Platform | Minecraft `1.21.1`, NeoForge, mod ID `labrinth` | Keep the same platform contract |
 | Dimension | `labrinth:labrinth` is registered and loadable | An effectively unlimited interior dimension |
-| Test world | Flat `minecraft:the_void` environment with a four-block platform | Just-in-time modular cells and sectors |
-| Generation | Phase 2 architecture is implemented: deterministic 64-block cells, chunk ownership, neighbor edges, seed derivation, and generation context; no procedural piece placement yet | Seed-derived, chunk-safe piece graph |
-| Verticality | Dimension height is available, but no generated floors yet | Multiple floors, stairs, shafts, drops, and lifts |
-| Regions | No procedural region content yet | Abandoned, Industrial, Flooded, Overgrown, Ancient, and Corrupted regions |
-| Content | Foundation registries and package boundaries exist | Datapack-friendly rooms, structures, loot, hazards, entities, and landmarks |
+| Test world | `minecraft:the_void` with the executable Labrinth generator and a walkable origin | Just-in-time modular cells and sectors |
+| Generation | Deterministic 64-block cells, chunk ownership, neighbor edges, seed derivation, chunk-local materializers, and bounded compound reservations | Seed-derived, chunk-safe piece graph |
+| Verticality | Three generated floors with stairs, ladders, and shafts | More authored vertical structures |
+| Regions | Abandoned, Industrial, Flooded, Overgrown, Ancient, and Corrupted region fields | More region-specific authored content |
+| Content | Rooms, corridors, landmarks, enclosed villages, two dungeon scales, large compounds, loot metadata, and owner-chunk population | Custom blocks, datapack-friendly authoring, hazards, and broader entity systems |
 
 ### 1.1 Implemented dimension contract
 
@@ -748,7 +747,30 @@ Landmarks may provide:
 Landmark placement must also enforce minimum spacing, maximum frequency,
 bounding size, connection requirements, and multi-chunk ownership.
 
-### 8.5 Encounter elements
+### 8.5 Origin-owned compound structures
+
+Villages, dungeon complexes, enormous caves, the massive hall, and monster
+outposts use `SpecialStructureCatalog` rather than separate reservation
+systems. Candidate origins are aligned to deterministic eight-cell sectors;
+one origin selects the definition, floor, region, depth, and open external
+connectors. The selected `COMPOUND` piece owns its complete half-open bounds,
+including internal courtyards and air, so ordinary rooms, corridors, vertical
+pieces, and overlapping landmarks yield before materialization.
+
+Compound connectors are placed on ordinary cell-center boundaries and are
+opened only when the canonical neighbor edge is connected. The normal content
+selector compares its boundary connector to that declared compound endpoint;
+every other compound face remains a wall. Intersecting chunks re-derive the
+same instance and render only their local intersection without loading a
+neighboring chunk. The owner chunk alone adds the deterministic population,
+while block-entity loot metadata is written with a stable position-derived
+seed so reloads do not duplicate entities or reroll an already-created chest.
+
+`findNearest` is a bounded development lookup, and the chunk-generator debug
+screen reports a selected compound and its open entrance count. Neither path
+changes normal selection or generation.
+
+### 8.6 Encounter elements
 
 Special rooms may contain:
 
@@ -761,7 +783,7 @@ Special rooms may contain:
 - story objects such as scrolls, relics, terminals, and memory nodes; and
 - loot guardians made from elite mobs or reward-protecting mechanisms.
 
-### 8.6 Example: The Archive
+### 8.7 Example: The Archive
 
 The landmark example includes:
 

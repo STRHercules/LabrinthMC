@@ -24,6 +24,7 @@ public final class StructurePiece {
         STAIRWAY,
         SHAFT,
         LANDMARK,
+        COMPOUND,
         SECRET_PASSAGE
     }
 

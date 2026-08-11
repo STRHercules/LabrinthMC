@@ -49,6 +49,11 @@ public final class LabrinthChunkGenerator extends ChunkGenerator {
             .apply(instance, instance.stable(LabrinthChunkGenerator::new)));
 
     private final CorridorSelectionConfig corridorConfig;
+    // Chunk generation receives RandomState, while development tools and the
+    // population pass work from the world seed. Keep both paths on the same
+    // seed-derived catalog decisions once the generator is attached to a level.
+    private long generationSeed;
+    private boolean generationSeedInitialized;
 
     public LabrinthChunkGenerator(BiomeSource biomeSource) {
         this(biomeSource, CorridorCatalog.DEFAULT_CONFIG);
@@ -75,6 +80,8 @@ public final class LabrinthChunkGenerator extends ChunkGenerator {
             HolderLookup<StructureSet> structureSets,
             RandomState randomState,
             long seed) {
+        generationSeed = seed;
+        generationSeedInitialized = true;
         return ChunkGeneratorStructureState.createForFlat(
                 randomState,
                 seed,
@@ -86,8 +93,11 @@ public final class LabrinthChunkGenerator extends ChunkGenerator {
     public CompletableFuture<ChunkAccess> fillFromNoise(
             Blender blender,
             RandomState randomState,
-            StructureManager structureManager,
+        StructureManager structureManager,
             ChunkAccess chunk) {
+        for (SpecialStructureCatalog.Instance special : specialStructures(randomState, chunk.getPos())) {
+            SpecialStructureCatalog.place(chunk, special);
+        }
         for (int floorIndex = VerticalCatalog.MIN_FLOOR;
                 floorIndex <= VerticalCatalog.MAX_FLOOR;
                 floorIndex++) {
@@ -117,9 +127,12 @@ public final class LabrinthChunkGenerator extends ChunkGenerator {
         // Landmark placement is sector-owned. Smaller pieces are filtered out
         // above so this final pass can materialize a landmark without being
         // overwritten by a neighboring cell's ordinary content.
-        for (LandmarkCatalog.Instance landmark : LandmarkCatalog.intersecting(
-                randomState,
-                chunk.getPos())) {
+        List<SpecialStructureCatalog.Instance> specials = specialStructures(randomState, chunk.getPos());
+        for (LandmarkCatalog.Instance landmark : landmarks(randomState, chunk.getPos())) {
+            if (specials.stream().anyMatch(special ->
+                    SpecialStructureCatalog.overlaps(special, landmark.piece().bounds()))) {
+                continue;
+            }
             LandmarkCatalog.place(chunk, landmark);
         }
         return CompletableFuture.completedFuture(chunk);
@@ -157,7 +170,7 @@ public final class LabrinthChunkGenerator extends ChunkGenerator {
 
     @Override
     public void spawnOriginalMobs(WorldGenRegion region) {
-        // Mob population is intentionally deferred to the later spawn phase.
+        SpecialStructureCatalog.populate(region, region.getLevel().getSeed());
     }
 
     @Override
@@ -224,10 +237,21 @@ public final class LabrinthChunkGenerator extends ChunkGenerator {
                         }
                     });
         }
-        for (LandmarkCatalog.Instance landmark : LandmarkCatalog.intersecting(
+        for (LandmarkCatalog.Instance landmark : landmarks(
                 randomState,
                 GenerationGrid.chunkForBlock(x, z))) {
             var bounds = landmark.piece().bounds();
+            if (x >= bounds.minBlockX() && x < bounds.maxBlockXExclusive()
+                    && z >= bounds.minBlockZ() && z < bounds.maxBlockZExclusive()) {
+                highest[0] = Math.max(highest[0], bounds.maxYExclusive());
+            }
+        }
+        for (SpecialStructureCatalog.Instance special : specialStructures(
+                randomState,
+                new ChunkPos(
+                        Math.toIntExact(GenerationGrid.chunkForBlock(x, z).x()),
+                        Math.toIntExact(GenerationGrid.chunkForBlock(x, z).z())))) {
+            var bounds = special.piece().bounds();
             if (x >= bounds.minBlockX() && x < bounds.maxBlockXExclusive()
                     && z >= bounds.minBlockZ() && z < bounds.maxBlockZExclusive()) {
                 highest[0] = Math.max(highest[0], bounds.maxYExclusive());
@@ -304,7 +328,7 @@ public final class LabrinthChunkGenerator extends ChunkGenerator {
                         }
                     });
         }
-        for (LandmarkCatalog.Instance landmark : LandmarkCatalog.intersecting(
+        for (LandmarkCatalog.Instance landmark : landmarks(
                 randomState,
                 GenerationGrid.chunkForBlock(x, z))) {
             var bounds = landmark.piece().bounds();
@@ -321,41 +345,67 @@ public final class LabrinthChunkGenerator extends ChunkGenerator {
                 }
             }
         }
+        for (SpecialStructureCatalog.Instance special : specialStructures(
+                randomState,
+                new ChunkPos(
+                        Math.toIntExact(GenerationGrid.chunkForBlock(x, z).x()),
+                        Math.toIntExact(GenerationGrid.chunkForBlock(x, z).z())))) {
+            var bounds = special.piece().bounds();
+            if (x < bounds.minBlockX() || x >= bounds.maxBlockXExclusive()
+                    || z < bounds.minBlockZ() || z >= bounds.maxBlockZExclusive()) {
+                continue;
+            }
+            int startY = Math.max(minY, bounds.minY());
+            int endY = Math.min(heightAccessor.getMaxBuildHeight(), bounds.maxYExclusive());
+            for (int y = startY; y < endY; y++) {
+                BlockState state = SpecialStructureCatalog.blockStateAt(
+                        special, x, y, z);
+                if (!state.isAir()) {
+                    states[y - minY] = state;
+                }
+            }
+        }
         return new NoiseColumn(minY, states);
     }
 
     @Override
     public void addDebugScreenInfo(List<String> info, RandomState randomState, BlockPos pos) {
-        info.add("Labrinth room, corridor, vertical, and landmark catalog");
+        info.add("Labrinth room, corridor, vertical, landmark, and compound catalog");
         info.add("Cell: " + GenerationGrid.cellForBlock(pos.getX(), pos.getZ()));
         GenerationGrid.Cell cell = GenerationGrid.cellForBlock(pos.getX(), pos.getZ());
-        info.add("Depth: " + DepthCatalog.profile(randomState, cell, 0).depth());
+        info.add("Depth: " + depthAt(randomState, cell, 0));
+        specialStructures(randomState,
+                        new ChunkPos(Math.toIntExact(GenerationGrid.chunkForBlock(pos.getX(), pos.getZ()).x()),
+                                Math.toIntExact(GenerationGrid.chunkForBlock(pos.getX(), pos.getZ()).z())))
+                .stream()
+                .findFirst()
+                .ifPresent(special -> info.add("Special: " + special.definition().id()
+                        + " (" + special.openConnectors().size() + " entrances)"));
     }
 
     private static final int FLOOR_SPAWN_HEIGHT = StraightCorridor.FLOOR_Y + 1;
 
-    private static void forEachIntersectingContent(
+    private void forEachIntersectingContent(
             ChunkPos chunkPos,
             RandomState randomState,
             CorridorSelectionConfig corridorConfig,
             int floorIndex,
             Consumer<LabrinthContentCatalog.Placement> consumer) {
         GenerationGrid.Cell center = GenerationGrid.cellForChunk(chunkPos.x, chunkPos.z);
-        List<LandmarkCatalog.Instance> landmarks = LandmarkCatalog.intersecting(randomState, chunkPos);
+        List<LandmarkCatalog.Instance> landmarks = landmarks(randomState, chunkPos);
+        List<SpecialStructureCatalog.Instance> specials = specialStructures(randomState, chunkPos);
         GenerationGrid.Chunk targetChunk = new GenerationGrid.Chunk(chunkPos.x, chunkPos.z);
         // Every selected piece stays within its owning cell except the bounded
         // three-block origin margin, so one-cell lookaround is sufficient.
         for (long cellX = center.x() - 1; cellX <= center.x() + 1; cellX++) {
             for (long cellZ = center.z() - 1; cellZ <= center.z() + 1; cellZ++) {
                 GenerationGrid.Cell cell = new GenerationGrid.Cell(cellX, cellZ);
-                int depth = DepthCatalog.depthAt(randomState, cell, floorIndex);
-                LabrinthContentCatalog.Placement placement = LabrinthContentCatalog.placement(
-                        randomState,
-                        cell,
-                        corridorConfig,
-                        depth,
-                        floorIndex);
+                int depth = depthAt(randomState, cell, floorIndex);
+                LabrinthContentCatalog.Placement placement = contentPlacement(
+                        randomState, cell, corridorConfig, depth, floorIndex);
                 if (placement.piece().intersects(targetChunk)
+                        && specials.stream().noneMatch(special ->
+                                SpecialStructureCatalog.overlaps(special, placement.piece().bounds()))
                         && landmarks.stream().noneMatch(landmark ->
                                 LandmarkCatalog.overlaps(landmark, placement.piece().bounds()))) {
                     consumer.accept(placement);
@@ -364,7 +414,7 @@ public final class LabrinthChunkGenerator extends ChunkGenerator {
         }
     }
 
-    private static void forEachIntersectingContent(
+    private void forEachIntersectingContent(
             GenerationGrid.Chunk chunk,
             RandomState randomState,
             CorridorSelectionConfig corridorConfig,
@@ -378,41 +428,32 @@ public final class LabrinthChunkGenerator extends ChunkGenerator {
                 consumer);
     }
 
-    private static void forEachIntersectingVertical(
+    private void forEachIntersectingVertical(
             ChunkPos chunkPos,
             RandomState randomState,
             CorridorSelectionConfig corridorConfig,
             int lowerFloor,
             Consumer<VerticalPlacement> consumer) {
         GenerationGrid.Cell center = GenerationGrid.cellForChunk(chunkPos.x, chunkPos.z);
-        List<LandmarkCatalog.Instance> landmarks = LandmarkCatalog.intersecting(randomState, chunkPos);
+        List<LandmarkCatalog.Instance> landmarks = landmarks(randomState, chunkPos);
+        List<SpecialStructureCatalog.Instance> specials = specialStructures(randomState, chunkPos);
         GenerationGrid.Chunk targetChunk = new GenerationGrid.Chunk(chunkPos.x, chunkPos.z);
         // Vertical pieces are centered within their owning cell, so the same
         // bounded one-cell lookaround covers every chunk intersection.
         for (long cellX = center.x() - 1; cellX <= center.x() + 1; cellX++) {
             for (long cellZ = center.z() - 1; cellZ <= center.z() + 1; cellZ++) {
                 GenerationGrid.Cell cell = new GenerationGrid.Cell(cellX, cellZ);
-                VerticalCatalog.Selection selection = VerticalCatalog.select(
-                        randomState,
-                        cell,
-                        lowerFloor);
+                VerticalCatalog.Selection selection = verticalSelection(randomState, cell, lowerFloor);
                 if (selection.present()
                         && selection.piece().intersects(targetChunk)
+                        && specials.stream().noneMatch(special ->
+                                SpecialStructureCatalog.overlaps(special, selection.piece().bounds()))
                         && landmarks.stream().noneMatch(landmark ->
                                 LandmarkCatalog.overlaps(landmark, selection.piece().bounds()))) {
-                    int depth = DepthCatalog.depthAt(randomState, cell, lowerFloor);
-                    RegionDefinition region = RegionCatalog.select(
-                            randomState,
-                            cell,
-                            depth,
-                            lowerFloor);
-                    LabrinthContentCatalog.Placement horizontalPlacement =
-                            LabrinthContentCatalog.placement(
-                                    randomState,
-                                    cell,
-                                    corridorConfig,
-                                    depth,
-                                    lowerFloor);
+                    int depth = depthAt(randomState, cell, lowerFloor);
+                    RegionDefinition region = regionAt(randomState, cell, depth, lowerFloor);
+                    LabrinthContentCatalog.Placement horizontalPlacement = contentPlacement(
+                            randomState, cell, corridorConfig, depth, lowerFloor);
                     consumer.accept(new VerticalPlacement(
                             selection,
                             region,
@@ -422,7 +463,7 @@ public final class LabrinthChunkGenerator extends ChunkGenerator {
         }
     }
 
-    private static void forEachIntersectingVertical(
+    private void forEachIntersectingVertical(
             GenerationGrid.Chunk chunk,
             RandomState randomState,
             CorridorSelectionConfig corridorConfig,
@@ -440,5 +481,74 @@ public final class LabrinthChunkGenerator extends ChunkGenerator {
             VerticalCatalog.Selection selection,
             RegionDefinition region,
             LabrinthContentCatalog.Placement horizontalPlacement) {
+    }
+
+    private List<SpecialStructureCatalog.Instance> specialStructures(
+            RandomState randomState,
+            ChunkPos chunkPos) {
+        if (generationSeedInitialized) {
+            return SpecialStructureCatalog.intersecting(
+                    generationSeed,
+                    new GenerationGrid.Chunk(chunkPos.x, chunkPos.z));
+        }
+        return SpecialStructureCatalog.intersecting(randomState, chunkPos);
+    }
+
+    private List<LandmarkCatalog.Instance> landmarks(
+            RandomState randomState,
+            ChunkPos chunkPos) {
+        if (generationSeedInitialized) {
+            return LandmarkCatalog.intersecting(
+                    generationSeed,
+                    new GenerationGrid.Chunk(chunkPos.x, chunkPos.z));
+        }
+        return LandmarkCatalog.intersecting(randomState, chunkPos);
+    }
+
+    private List<LandmarkCatalog.Instance> landmarks(
+            RandomState randomState,
+            GenerationGrid.Chunk chunk) {
+        if (generationSeedInitialized) {
+            return LandmarkCatalog.intersecting(generationSeed, chunk);
+        }
+        return LandmarkCatalog.intersecting(randomState, chunk);
+    }
+
+    private int depthAt(RandomState randomState, GenerationGrid.Cell cell, int floorIndex) {
+        return generationSeedInitialized
+                ? DepthCatalog.depthAt(generationSeed, cell, floorIndex)
+                : DepthCatalog.depthAt(randomState, cell, floorIndex);
+    }
+
+    private RegionDefinition regionAt(
+            RandomState randomState,
+            GenerationGrid.Cell cell,
+            int depth,
+            int floorIndex) {
+        return generationSeedInitialized
+                ? RegionCatalog.select(generationSeed, cell, depth, floorIndex)
+                : RegionCatalog.select(randomState, cell, depth, floorIndex);
+    }
+
+    private LabrinthContentCatalog.Placement contentPlacement(
+            RandomState randomState,
+            GenerationGrid.Cell cell,
+            CorridorSelectionConfig config,
+            int depth,
+            int floorIndex) {
+        return generationSeedInitialized
+                ? LabrinthContentCatalog.placement(
+                        generationSeed, cell, config, depth, floorIndex)
+                : LabrinthContentCatalog.placement(
+                        randomState, cell, config, depth, floorIndex);
+    }
+
+    private VerticalCatalog.Selection verticalSelection(
+            RandomState randomState,
+            GenerationGrid.Cell cell,
+            int lowerFloor) {
+        return generationSeedInitialized
+                ? VerticalCatalog.select(generationSeed, cell, lowerFloor)
+                : VerticalCatalog.select(randomState, cell, lowerFloor);
     }
 }

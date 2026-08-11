@@ -382,6 +382,11 @@ Potential features include:
 * [x] Region system
 * [x] Rare rooms
 * [x] Major landmarks
+* [x] Origin-owned reserved compounds
+* [x] Enclosed Labrinth villages and deterministic villagers
+* [x] Compact and multi-room dungeon scales
+* [x] Monster-controlled zombie, skeleton, illager, piglin, and wither-skeleton outposts
+* [x] Expanded natural, civic, military, archive, frozen, chapel, treasury, and jail rooms
 * [ ] Custom loot
 * [ ] Custom blocks
 * [ ] Custom entities
@@ -428,9 +433,11 @@ Because there might not be one.
 complete:** the `labrinth:labrinth` dimension uses deterministic 64-block
 generation cells and a mixed room-and-corridor catalog that re-materializes
 content as chunks load, including thousands of blocks from the origin without
-retaining a pre-generated layout. The catalog includes eighteen registered
+retaining a pre-generated layout. The catalog includes thirty-five registered
 room styles—storage, utility, chamber, gallery, archive, reward, decorative,
-and test variants—with variable widths and heights, along with twenty-nine
+caves, jungle grottos, spider nests, quarters, barracks, stockades, dining
+halls, libraries, treasuries, frozen chambers, chapels, jail blocks, and test
+variants—with variable widths and heights, along with twenty-nine
 hallway/corridor shapes. Room metadata carries weights, rarity, rotation,
 region/depth gates, connectors, placement conditions, decorations, and loot
 references. Interiors are materialized chunk-locally with lighting, props,
@@ -476,6 +483,23 @@ sector origins. Connection requirements, region/depth/floor restrictions, and
 half-open multi-chunk bounds are validated before selection. Intersecting chunks
 only rematerialize the origin-owned landmark, and ordinary rooms, corridors, and
 vertical pieces yield to its bounds.
+
+The compound catalog extends the same ownership rule to enclosed villages,
+compact and complex dungeons, enormous caves, a massive hall, and distinct
+zombie, skeleton, illager, piglin, and wither-skeleton outposts. Each compound
+reserves its complete multi-cell bounds before ordinary content is rendered,
+opens only deterministic door connectors, attaches vanilla loot tables, and
+populates its owner chunk once with villagers or faction mobs. A bounded debug
+lookup and F3 generator summary expose selected compounds without changing
+normal generation.
+
+For practical exploration, operators can locate selected compounds from inside
+the Labrinth with `/labrinth locate all`, or target one family with commands
+such as `/labrinth locate village`, `/labrinth locate dungeon_complex`, and
+`/labrinth locate wither_skeleton_outpost 64`. The command reports the center,
+floor, and logical depth; it does not force-load or alter generation. Existing
+chunks are not rewritten when the mod updates, so test the reported destination
+in an unexplored area or create a fresh world with the current jar.
 
 Features described in this README represent the intended direction of the project and may change substantially as the generation system is developed.
 

@@ -1,5 +1,6 @@
 package com.labrinthmc.labrinth.world.generation;
 
+import com.labrinthmc.labrinth.world.connector.Connector;
 import com.labrinthmc.labrinth.world.corridor.CorridorCatalog;
 import com.labrinthmc.labrinth.world.corridor.CorridorSelectionConfig;
 import com.labrinthmc.labrinth.world.room.RoomCatalog;
@@ -8,6 +9,7 @@ import com.labrinthmc.labrinth.world.region.RegionCatalog;
 import com.labrinthmc.labrinth.world.region.RegionDefinition;
 import java.util.EnumSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import net.minecraft.resources.ResourceLocation;
@@ -278,6 +280,15 @@ public final class LabrinthContentCatalog {
         EnumSet<GenerationGrid.Direction> open = EnumSet.noneOf(GenerationGrid.Direction.class);
         for (GenerationGrid.Direction direction : requestedConnections) {
             GenerationGrid.Cell neighborCell = cell.neighbor(direction);
+            Optional<Connector> specialConnection = SpecialStructureCatalog.connectionAt(
+                    randomState, cell, direction, floorIndex);
+            if (specialConnection.isPresent()) {
+                if (compatibleSpecialConnection(
+                        selection.piece(), cell, direction, specialConnection.get())) {
+                    open.add(direction);
+                }
+                continue;
+            }
             RegionDefinition neighborRegion = regionForCell.apply(neighborCell);
             int neighborDepth = depthForCell.apply(neighborCell);
             Selection neighbor = selectForConnections(
@@ -379,6 +390,15 @@ public final class LabrinthContentCatalog {
         EnumSet<GenerationGrid.Direction> open = EnumSet.noneOf(GenerationGrid.Direction.class);
         for (GenerationGrid.Direction direction : requestedConnections) {
             GenerationGrid.Cell neighborCell = cell.neighbor(direction);
+            Optional<Connector> specialConnection = SpecialStructureCatalog.connectionAt(
+                    worldSeed, cell, direction, floorIndex);
+            if (specialConnection.isPresent()) {
+                if (compatibleSpecialConnection(
+                        selection.piece(), cell, direction, specialConnection.get())) {
+                    open.add(direction);
+                }
+                continue;
+            }
             RegionDefinition neighborRegion = regionForCell.apply(neighborCell);
             int neighborDepth = depthForCell.apply(neighborCell);
             Selection neighbor = selectForConnections(
@@ -437,6 +457,24 @@ public final class LabrinthContentCatalog {
                 currentRegion,
                 ignored -> depth,
                 neighbor -> RegionCatalog.select(worldSeed, neighbor, depth, floorIndex));
+    }
+
+    private static boolean compatibleSpecialConnection(
+            PlacedStructurePiece ordinaryPiece,
+            GenerationGrid.Cell ordinaryCell,
+            GenerationGrid.Direction direction,
+            Connector specialConnection) {
+        Connector.Direction ordinaryDirection = switch (direction) {
+            case NORTH -> Connector.Direction.NORTH;
+            case EAST -> Connector.Direction.EAST;
+            case SOUTH -> Connector.Direction.SOUTH;
+            case WEST -> Connector.Direction.WEST;
+        };
+        return GenerationConnectionRules.hasBoundaryConnector(ordinaryPiece, ordinaryCell, direction)
+                && ordinaryPiece.connectors().stream()
+                .filter(connector -> connector.direction() == ordinaryDirection)
+                .anyMatch(connector -> connector.position().equals(specialConnection.position())
+                        && connector.compatibleWith(specialConnection));
     }
 
     public static void place(ChunkAccess chunk, Placement placement) {

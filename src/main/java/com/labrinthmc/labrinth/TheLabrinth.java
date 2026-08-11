@@ -27,6 +27,7 @@ public final class TheLabrinth {
     public TheLabrinth(IEventBus modEventBus, ModContainer modContainer) {
         modContainer.registerConfig(ModConfig.Type.COMMON, LabrinthConfig.SPEC);
         NeoForge.EVENT_BUS.register(LabrinthEvents.class);
+        NeoForge.EVENT_BUS.register(com.labrinthmc.labrinth.command.LabrinthCommands.class);
 
         // Keep registry wiring on the common mod bus; client renderers belong under the client package.
         ModBlocks.register(modEventBus);

@@ -1,1716 +1,1693 @@
 # TASK.md
 
-# The Labrinth — Master Development Roadmap
+# The Labrinth - Reference Integration and Endless Discovery Generation Overhaul
 
-This file defines the complete development roadmap for **The Labrinth**, a Minecraft `NeoForge` mod for `Minecraft 1.21.1`.
+This is the active development task for **The Labrinth**, a Minecraft `NeoForge` mod targeting **Minecraft 1.21.1**.
 
-The goal of this project is to create an entire procedurally generated dimension composed primarily of interconnected corridors, hallways, rooms, chambers, vertical passages, landmarks, and themed regions.
+The purpose of this task is to turn the current procedural foundation into the experience the project is actually supposed to deliver:
 
-The dimension itself is the maze.
+> **An ever-sprawling interior world where the maze itself continues indefinitely and meaningful discoveries keep appearing deeper inside it.**
 
-This document is intended to be worked through incrementally. Mark tasks complete only after the implementation is functional, builds successfully, and has been validated according to `AGENTS.md`.
+The Labrinth must not feel like endless ordinary hallways with a catalogue of special content that technically exists somewhere in code.
 
----
+Caves, villages, dungeons, outposts, major rooms, landmarks, hostile territories, ruins, and other discoveries must **actually generate, be reachable, survive chunk reloads, and appear often enough to matter during real exploration**.
 
-# Project Rules
+This task supersedes previous "implemented" checkboxes for villages, dungeons, caves, outposts, and other compound content until those systems have been re-audited and proven in a fresh world.
 
-Before beginning any section:
+Do not mark a feature complete merely because:
 
-* [ ] Read `AGENTS.md`
-* [ ] Review the current state of the codebase
-* [ ] Review completed tasks in this file
-* [ ] Do not redo completed work unless required by the current task
-* [ ] Respect all read-only directories
-* [ ] Keep world generation deterministic
-* [ ] Avoid uncontrolled recursion
-* [ ] Avoid unnecessary chunk loading
-* [ ] Maintain dedicated-server compatibility
-* [ ] Build the project before committing
-* [ ] Increment the version in `build.gradle`
-* [ ] Update `TRACELOG.md`
-* [ ] Update `SUGGESTIONS.md`
+* it has a registry entry;
+* it can be selected by a catalogue;
+* a locator predicts a coordinate;
+* a framework-free self-check passes;
+* a structure class exists;
+* a compound definition exists; or
+* a debug command reports that it should exist.
+
+For this task, **working means physically materialized, reachable, coherent, persistent, and playable in a freshly generated Labrinth world**.
 
 ---
 
-# Phase 0 — Project Foundation
+# 0. REQUIRED REPOSITORY REVIEW
 
-## 0.1 Project Validation
+Before changing code:
 
-* [x] Confirm the project targets Minecraft `1.21.1`
-* [x] Confirm the project uses `NeoForge`
-* [x] Confirm Java version is compatible with the configured NeoForge toolchain
-* [x] Confirm Gradle wrapper works
-* [x] Confirm `gradlew build` succeeds before major development begins
-* [x] Verify mod metadata loads correctly
-* [x] Verify mod ID
-* [x] Verify display name is `The Labrinth`
-* [x] Verify package namespace is consistent
-* [x] Remove unused template/example code if safe to do so
-* [x] Confirm dedicated server startup succeeds
+* [ ] Read `AGENTS.md`.
+* [ ] Read `README.md`.
+* [ ] Read `architecture.md`.
+* [ ] Read `GOAL.md`.
+* [ ] Read `REFERENCE_GUIDE.md`.
+* [ ] Read the latest relevant entries in `TRACELOG.md`.
+* [ ] Read the latest relevant entries in `SUGGESTIONS.md`.
+* [ ] Review `IDEAS.md`.
+* [ ] Review the current `TASK.md` history if present.
+* [ ] Inspect the actual generation, room, corridor, landmark, compound, connector, region, depth, population, loot, and debug implementations.
+* [ ] Run the existing generation self-checks.
+* [ ] Build the project before major changes.
 
----
+Do not assume the documentation and current runtime behavior are identical.
 
-## 0.2 Base Package Organization
-
-Create or validate a maintainable package structure.
-
-Suggested organization:
-
-```text
-src/main/java/
-└── <mod package>/
-    ├── TheLabrinth.java
-    ├── registry/
-    ├── world/
-    │   ├── dimension/
-    │   ├── generation/
-    │   ├── region/
-    │   ├── room/
-    │   ├── corridor/
-    │   ├── landmark/
-    │   ├── connector/
-    │   └── placement/
-    ├── block/
-    ├── item/
-    ├── entity/
-    ├── loot/
-    ├── event/
-    ├── command/
-    ├── config/
-    ├── debug/
-    └── client/
-```
-
-Tasks:
-
-* [x] Create logical package structure
-* [x] Separate client-only code from common/server code
-* [x] Establish registry classes
-* [x] Establish generation packages
-* [x] Establish debug/development packages
-* [x] Document important architectural boundaries
+The latest runtime implementation must be treated as something to **verify**, not merely trust.
 
 ---
 
-# Phase 1 — Dimension Foundation
+# 1. PRIMARY PLAYER-FACING GOAL
 
-## 1.1 Dimension Registration
+The finished Labrinth should feel like a world that can be explored for an extremely long time without reducing itself to repeated hallways and rectangular rooms.
 
-Create the base Labrinth dimension.
+The player should encounter a hierarchy of discoveries.
 
-* [x] Register the Labrinth dimension
-* [x] Register dimension type
-* [x] Register level stem if required
-* [x] Create required data files
-* [x] Confirm the dimension loads
-* [x] Confirm `/execute in` can access it
-* [x] Confirm teleportation into the dimension works
-* [x] Confirm dimension survives save/reload
-* [x] Confirm multiplayer/dedicated server loading works
+## Frequent discoveries
+
+Examples:
+
+* unusual room geometry;
+* cave pockets;
+* ruined shelters;
+* kitchens;
+* baths;
+* quarters;
+* workshops;
+* small shrines;
+* storage rooms;
+* collapsed sections;
+* small hostile rooms;
+* abandoned camps;
+* environmental story spaces;
+* tiny structures embedded in larger rooms.
+
+## Uncommon discoveries
+
+Examples:
+
+* large caves;
+* dining halls;
+* libraries;
+* stockades;
+* barracks;
+* churches;
+* markets;
+* jail blocks;
+* small villages;
+* compact dungeons;
+* faction outposts;
+* mines;
+* catacomb sections;
+* ruined civic spaces.
+
+## Rare discoveries
+
+Examples:
+
+* large enclosed settlements;
+* multi-room dungeon complexes;
+* multi-floor prisons;
+* major hostile strongholds;
+* enormous caverns;
+* grand libraries;
+* massive halls;
+* ancient temples;
+* treasure compounds;
+* large faction territories;
+* ruined underground districts.
+
+## Exceptional / landmark discoveries
+
+Examples:
+
+* fortress-scale compounds;
+* rare multi-floor dungeons;
+* enormous underground settlements;
+* monumental chapels;
+* ancient citadels;
+* major boss or trial spaces;
+* unusual portal-related structures;
+* region-defining landmarks.
+
+The deeper and farther the player explores, the **content vocabulary should broaden**.
+
+Do not simply increase mob health or loot numbers.
+
+Depth should increasingly unlock:
+
+* new room families;
+* more complex compound grammars;
+* stranger cave types;
+* harder outpost variants;
+* larger settlements;
+* rarer architecture;
+* unusual region combinations;
+* better rewards;
+* stronger encounters;
+* more vertical structures;
+* more secrets;
+* more dangerous or surreal variants.
+
+The player should repeatedly have the experience:
+
+> "What the hell is this place?"
 
 ---
 
-## 1.2 Basic Dimension Properties
+# 2. NON-NEGOTIABLE GENERATION CONTRACT
 
-Define the initial behavior of the Labrinth dimension.
+The existing Labrinth world-generation architecture remains authoritative.
 
-Decide and implement:
+Preserve:
 
-* [x] Coordinate scale
-* [x] Minimum Y
-* [x] Maximum Y
-* [x] Logical height
-* [x] Skylight behavior
-* [x] Ceiling behavior
-* [x] Ambient light
-* [x] Bed behavior
-* [x] Respawn anchor behavior
-* [x] Piglin safety behavior if applicable
-* [x] Natural spawning rules
-* [x] Time behavior
-* [x] Weather behavior
-* [x] Fog behavior if handled at this stage
+* deterministic world-seed generation;
+* 64-block generation-cell ownership;
+* canonical neighbor-edge agreement;
+* chunk-local materialization;
+* origin-owned multi-chunk structures;
+* complete compound reservations;
+* explicit external connectors;
+* region and logical-depth selection;
+* bounded algorithms;
+* chunk-order independence;
+* no recursive chunk generation;
+* no unnecessary neighboring chunk loads;
+* dedicated-server compatibility.
 
----
+External reference mods are used to **improve or populate Labrinth systems**, not to replace the Labrinth generator.
 
-## 1.3 Initial Test Environment
-
-Before procedural generation exists, create a safe test environment.
-
-* [x] Generate a simple solid or empty test dimension
-* [x] Create a predictable spawn platform/room
-* [x] Verify player does not spawn inside blocks
-* [x] Verify player cannot immediately fall into the void
-* [x] Verify client rendering
-* [x] Verify dedicated server behavior
-
----
-
-# Phase 2 — Generation Architecture
-
-## 2.1 Generation Design
-
-Implement a formal generation architecture before creating large amounts of content.
-
-Core systems should distinguish between:
-
-```text
-World
-├── Region
-├── Generation Cell / Sector
-├── Structure Piece
-│   ├── Room
-│   ├── Corridor
-│   ├── Junction
-│   ├── Vertical Connector
-│   └── Landmark
-└── Decoration
-```
-
-Tasks:
-
-* [x] Define generation coordinate system
-* [x] Define generation unit size
-* [x] Decide whether generation uses chunks, cells, sectors, or another deterministic grid
-* [x] Define ownership rules for generated pieces
-* [x] Define how pieces spanning multiple chunks are owned
-* [x] Define how neighboring connections are calculated
-* [x] Define how generation decisions are seeded
-* [x] Ensure decisions do not depend on chunk load order
-
----
-
-## 2.2 Seed Derivation
-
-Create deterministic seed utilities.
-
-Generation decisions should be derivable from combinations such as:
+A large discovery should conceptually follow:
 
 ```text
-World Seed
-+ Dimension Salt
-+ Cell Coordinates
-+ Structure Type Salt
-+ Local Position
+World seed + Labrinth coordinates
+        ↓
+Determine region / depth / discovery eligibility
+        ↓
+Choose one deterministic owner
+        ↓
+Assemble the complete logical discovery
+        ↓
+Calculate complete bounds
+        ↓
+Validate collisions / floor / region / depth
+        ↓
+Reserve the full occupied volume
+        ↓
+Declare intentional Labrinth entrances / exits
+        ↓
+Generate ordinary Labrinth around the reservation
+        ↓
+Materialize only the current chunk's intersecting content
+        ↓
+Populate owned entities / loot exactly once
 ```
 
-Tasks:
+Never solve missing structures by pasting them over an already generated maze.
 
-* [x] Create deterministic seed utility
-* [x] Create salts/constants for major generation systems
-* [x] Ensure room selection is deterministic
-* [x] Ensure corridor selection is deterministic
-* [x] Ensure region selection is deterministic
-* [x] Ensure landmark selection is deterministic
-* [x] Verify repeated world reloads generate identical layouts
-* [x] Verify generation order does not alter results
+The maze must appear to have grown **around** major discoveries.
 
 ---
 
-## 2.3 Generation Context
+# 3. PHASE ONE - ESTABLISH THE TRUTH ABOUT CURRENT GENERATION
 
-Create a shared context object for generation where useful.
+Before importing large amounts of new content, determine what is actually broken.
 
-Potential information:
+The current project documentation describes villages, two dungeon scales, enormous caves, large compounds, and multiple hostile outposts as implemented.
 
-* [x] World seed
-* [x] Dimension seed/salt
-* [x] Cell coordinates
-* [x] Chunk coordinates
-* [x] Local generation depth
-* [x] Region
-* [x] Neighbor information
-* [x] Random source
-* [x] Generation constraints
+Treat all of those as **UNVERIFIED** until this phase is complete.
 
-Avoid uncontrolled shared mutable state.
+## 3.1 Build a Runtime Discovery Audit
 
-> Phase 2 validation covers repeatable architecture decisions and evaluation
-> order. Placed-layout reload validation begins when Phase 3 adds executable
-> structure pieces.
-
----
-
-# Phase 3 — Modular Structure System
-
-## 3.1 Base Structure Piece
-
-Create a reusable abstraction for Labrinth generation pieces.
-
-Pieces may include:
-
-* Rooms
-* Corridors
-* Junctions
-* Stairways
-* Shafts
-* Landmarks
-
-Each piece should support appropriate metadata.
-
-Potential fields:
-
-* [x] ID
-* [x] Structure/template
-* [x] Width
-* [x] Height
-* [x] Depth
-* [x] Bounding box
-* [x] Weight
-* [x] Rarity
-* [x] Rotation rules
-* [x] Mirror rules
-* [x] Minimum depth
-* [x] Maximum depth
-* [x] Allowed regions
-* [x] Connector definitions
-* [x] Placement conditions
-* [x] Loot configuration
-* [x] Decoration rules
-
----
-
-## 3.2 Connector System
-
-Create a formal connection system.
-
-Connector data should support:
-
-* [x] Position
-* [x] Direction
-* [x] Connector type
-* [x] Width
-* [x] Height
-* [x] Rotation
-* [x] Compatibility rules
-* [x] Optional required connection
-* [x] Optional blocked connection
-
-Example connector types may include:
+For every current special-content family, record:
 
 ```text
-STANDARD
-WIDE
-DOOR
-ARCH
-STAIR_UP
-STAIR_DOWN
-SHAFT
-VENT
-LANDMARK
-SPECIAL
+registered?
+eligible?
+selected?
+locator agrees?
+owner determined?
+reservation created?
+materialized?
+entrance materialized?
+reachable from Labrinth?
+interior coherent?
+entities populated?
+loot populated?
+survives reload?
+same under different chunk order?
 ```
 
-Tasks:
-
-* [x] Create connector representation
-* [x] Create compatibility checks
-* [x] Create rotation transformation
-* [x] Create connection alignment
-* [x] Validate matching connector dimensions
-* [x] Reject invalid connections
-* [x] Support capped/closed connectors
-
----
-
-## 3.3 Bounding Box Validation
-
-* [x] Implement structure bounding boxes
-* [x] Detect invalid overlaps
-* [x] Allow explicitly permitted overlaps
-* [x] Prevent rooms generating through unrelated rooms
-* [x] Prevent corridor collisions
-* [x] Validate vertical overlap
-* [x] Validate world height
-* [x] Keep validation bounded and performant
-
----
-
-# Phase 4 — Corridor Generation
-
-## 4.1 Basic Corridor
-
-Create the first functional corridor module.
-
-* [x] Straight corridor
-* [x] Floor
-* [x] Walls
-* [x] Ceiling
-* [x] Lighting support
-* [x] Forward connector
-* [x] Rear connector
-* [x] Rotation support
-* [x] Deterministic placement
-
----
-
-## 4.2 Corridor Variants
-
-Create basic corridor shapes.
-
-* [x] Short straight
-* [x] Medium straight
-* [x] Long straight
-* [x] Left turn
-* [x] Right turn
-* [x] T-junction
-* [x] Four-way junction
-* [x] Dead end
-* [x] Wide corridor
-* [x] Narrow corridor
-
----
-
-## 4.3 Corridor Selection
-
-* [x] Weighted selection
-* [x] Configurable weights
-* [x] Avoid excessive repetition
-* [x] Allow dead ends
-* [x] Ensure dead-end probability is controlled
-* [x] Ensure branching remains bounded
-* [x] Prevent runaway recursive generation
-
----
-
-# Phase 5 — Room Generation
-
-## 5.1 Base Room System
-
-Create modular room definitions.
-
-* [x] Room registration
-* [x] Room ID
-* [x] Room weight
-* [x] Room rarity
-* [x] Room dimensions
-* [x] Room connectors
-* [x] Room rotation
-* [x] Region restrictions
-* [x] Depth restrictions
-* [x] Placement conditions
-
----
-
-## 5.2 Initial Room Set
-
-Create enough rooms to validate diversity.
-
-Minimum initial set:
-
-* [x] Empty room
-* [x] Small storage room
-* [x] Large chamber
-* [x] Utility room
-* [x] Cross-room
-* [x] Long rectangular room
-* [x] Multi-exit room
-* [x] Dead-end reward room
-* [x] Decorative room
-* [x] Rare test room
-
----
-
-## 5.3 Room Interiors
-
-Support room-specific content.
-
-* [x] Decorations
-* [x] Lighting
-* [x] Furniture/props
-* [x] Block variation
-* [x] Loot containers
-* [x] Spawn markers
-* [x] Environmental effects
-* [x] Special interactive elements
-
----
-
-# Phase 6 — Continuous Labrinth Generation
-
-## 6.1 Infinite/Expandable Layout
-
-Create the system that allows the Labrinth to continue generating as players explore.
-
-* [x] Generate pieces beyond initial spawn
-* [x] Generate deterministically as chunks load
-* [x] Avoid pre-generating the entire dimension
-* [x] Avoid recursive chunk loading
-* [x] Ensure unloaded areas require minimal retained state
-* [x] Verify generation can continue thousands of blocks from origin
-
----
-
-## 6.2 Connection Continuity
-
-* [x] Ensure corridors align across chunk boundaries
-* [x] Ensure room entrances align across chunk boundaries
-* [x] Ensure walls do not block valid connections
-* [x] Ensure neighboring chunks agree on connection state
-* [x] Ensure generation order does not create mismatches
-* [x] Test approaching the same area from different directions
-
----
-
-## 6.3 Dead-End Handling
-
-Dead ends are intentional but should not dominate generation.
-
-* [x] Define dead-end frequency
-* [x] Allow dead-end rooms
-* [x] Allow dead-end corridors
-* [x] Add optional reward logic
-* [x] Ensure large areas do not accidentally become inaccessible
-* [x] Ensure generation does not require every path to reconnect
-
----
-
-# Phase 7 — Vertical Generation
-
-## 7.1 Multiple Floors
-
-* [x] Support generation above/below starting floor
-* [x] Define floor height
-* [x] Define vertical layer system
-* [x] Prevent layer overlap
-* [x] Allow different room pools by elevation
-
----
-
-## 7.2 Stairways
-
-* [x] Stair up piece
-* [x] Stair down piece
-* [x] Stair connectors
-* [x] Multi-floor alignment
-* [x] Bounding validation
-
----
-
-## 7.3 Shafts
-
-* [x] Vertical shaft
-* [x] Ladder shaft
-* [x] Drop shaft
-* [x] Elevator-like shaft placeholder
-* [x] Multi-floor shaft support
-* [x] Safety handling
-
----
-
-## 7.4 Vertical Restrictions
-
-* [x] Respect dimension minimum Y
-* [x] Respect dimension maximum Y
-* [x] Prevent vertical generation outside valid bounds
-* [x] Cap upward/downward branching where required
-
----
-
-# Phase 8 — Region System
-
-## 8.1 Region Architecture
-
-Regions control the visual and generation identity of large portions of the Labrinth.
-
-Create a region definition system supporting:
-
-* [x] Region ID
-* [x] Region weight
-* [x] Room pool
-* [x] Corridor pool
-* [x] Block palette
-* [x] Lighting rules
-* [x] Decoration rules
-* [x] Mob rules
-* [x] Loot modifiers
-* [x] Ambient properties
-* [x] Generation conditions
-
----
-
-## 8.2 Region Distribution
-
-* [x] Deterministic region selection
-* [x] Large contiguous region areas
-* [x] Avoid changing region every chunk
-* [x] Support gradual transitions
-* [x] Support rare regions
-* [x] Support depth-restricted regions
-* [x] Support elevation-restricted regions
-
----
-
-## 8.3 Initial Regions
-
-Create initial themed environments.
-
-### Default / Standard
-
-* [x] Base Labrinth region
-
-### Abandoned
-
-* [x] Damaged walls
-* [x] Broken lighting
-* [x] Debris
-* [x] Cracked surfaces
-* [x] Derelict rooms
-
-### Industrial
-
-* [x] Utility corridors
-* [x] Pipes
-* [x] Machinery props
-* [x] Storage areas
-* [x] Maintenance rooms
-
-### Flooded
-
-* [x] Waterlogged sections
-* [x] Leaks
-* [x] Flooded rooms
-* [x] Water-safe generation logic
-
-### Overgrown
-
-* [x] Moss
-* [x] Vines
-* [x] Vegetation
-* [x] Organic room variants
-
-### Ancient
-
-* [x] Older architecture
-* [x] Stone palette
-* [x] Ruin-like rooms
-
-### Corrupted
-
-* [x] Unusual geometry
-* [x] Altered palettes
-* [x] Strange room selection
-* [x] Rare environmental behavior
-
----
-
-# Phase 9 — Depth / Progression System
-
-## 9.1 Labrinth Depth
-
-Create a logical concept of "depth."
-
-Depth does not necessarily need to equal physical Y-level.
-
-Potential inputs:
+Audit at minimum:
+
+* villages;
+* compact dungeons;
+* dungeon complexes;
+* enormous caves;
+* massive halls;
+* zombie outposts;
+* skeleton outposts;
+* illager outposts;
+* piglin outposts;
+* wither-skeleton outposts;
+* each registered landmark family.
+
+## 3.2 Fresh-World Validation
+
+Use multiple fresh worlds.
+
+Do not validate only an existing save because previously generated chunks are not rewritten.
+
+For representative discoveries:
+
+1. use the current locator;
+2. travel or teleport near the destination without manually placing the structure;
+3. allow the relevant chunks to generate;
+4. confirm the predicted structure physically exists;
+5. inspect its intended entrance;
+6. confirm surrounding Labrinth geometry connects correctly;
+7. enter and traverse it;
+8. leave the area;
+9. reload the chunks;
+10. return and verify the structure, entities, and loot state remain correct.
+
+## 3.3 Fix Root Causes Before Content Expansion
+
+If any category is not materializing reliably, identify the failure layer:
 
 ```text
-Distance from origin
-+ Generation branch depth
-+ Region transitions
-+ Landmark progression
-+ Optional vertical distance
+selection
+reservation
+bounds
+floor selection
+region gate
+depth gate
+owner calculation
+chunk intersection
+materializer
+connector routing
+template placement
+population
+loot initialization
+version/data mismatch
 ```
 
-Tasks:
+Do not hide broken selection with artificially huge spawn rates.
 
-* [x] Define depth formula
-* [x] Ensure depth is deterministic
-* [x] Expose depth to generation context
-* [x] Allow content to specify minimum depth
-* [x] Allow content to specify maximum depth
+Do not proceed to mass donor migration until the core discovery pipeline can reliably materialize a test structure.
 
 ---
 
-## 9.2 Depth-Based Generation
+# 4. PHASE TWO - REFERENCE LIBRARY AUDIT AND EXTRACTION PLAN
 
-Use depth to progressively alter content.
+The entire current `References/` library must be considered during this task.
 
-* [x] Increase rare room availability
-* [x] Unlock new room pools
-* [x] Unlock new corridor variants
-* [x] Unlock new regions
-* [x] Modify loot
-* [x] Modify entity spawning
-* [x] Modify hazards
-* [x] Modify ambient effects
-* [x] Allow very deep generation to become increasingly unusual
+Everything remains READ-ONLY.
 
----
+Reference JARs may be unpacked into a temporary research directory where allowed by `AGENTS.md`, but never modified in place.
 
-# Phase 10 — Landmark System
+Before direct source or asset reuse, verify the exact local license.
 
-## 10.1 Landmark Architecture
+Create `REFERENCE_IMPORTS.md` if any third-party structure, code, algorithm implementation, or asset is directly incorporated.
 
-Landmarks are large, rare, recognizable structures.
+For each direct import record:
 
-Create support for:
+```text
+source reference
+source version
+original path
+license
+Labrinth destination
+changes made
+DataVersion conversion
+foreign block substitutions
+foreign entity substitutions
+connector conversion
+processor/palette conversion
+attribution requirements
+```
 
-* [x] Landmark ID
-* [x] Deterministic origin
-* [x] Minimum spacing
-* [x] Maximum frequency
-* [x] Bounding size
-* [x] Region restrictions
-* [x] Depth restrictions
-* [x] Connection requirements
-* [x] Multi-chunk placement
-* [x] Multi-floor placement
+## 4.1 Reference Integration Matrix
 
----
+### `Minecraft_Client_Source_1.21.1`
 
-## 10.2 Landmark Ownership
+Use as the primary API and data-format authority for:
 
-Critical:
+* `StructureTemplate`;
+* jigsaw/template pools;
+* processors;
+* bounding boxes;
+* rotations;
+* village structures;
+* strongholds;
+* mineshafts;
+* ancient cities;
+* trial chambers;
+* structure serialization;
+* chunk interaction.
 
-* [x] Assign one deterministic origin cell/chunk
-* [x] Prevent neighboring chunks from independently spawning the same landmark
-* [x] Ensure multi-chunk pieces generate once
-* [x] Verify reload safety
-* [x] Verify generation-order safety
+### `NeoForge-1.21.11`
 
----
+Use for loader, registry, datagen, event, and worldgen integration patterns.
 
-## 10.3 Initial Landmarks
+It is not automatically API-compatible with the project's target version.
 
-Create several test landmarks.
+Translate everything back to the actual configured Labrinth NeoForge/Minecraft 1.21.1 API.
 
-Potential examples:
+### `StructureTutorialMod-1.21.11-Neoforge-Jigsaw`
 
-* [x] Grand Hall
-* [x] Central Stairwell
-* [x] Massive Storage Complex
-* [x] Generator Room
-* [x] Flooded Atrium
-* [x] Abandoned Station
-* [x] Ancient Chamber
-* [x] Corrupted Nexus
+Use heavily for:
 
-Names and designs may change during development.
+* NBT structure authoring;
+* template loading;
+* jigsaw markers;
+* fallback pools;
+* weighted template pools;
+* processors;
+* structure markers;
+* modular building composition.
 
----
+Use it to help implement Labrinth-owned template infrastructure.
 
-# Phase 11 — Block Palette System
+### `RepurposedStructures-1.21.5-MDG`
 
-## 11.1 Palette Architecture
+Use heavily for:
 
-Create reusable block palettes.
+* large structure libraries;
+* pool organization;
+* processor lists;
+* palette variation;
+* theme variants;
+* data-driven structure content;
+* maintaining many structure types without massive Java registries.
 
-Palettes may define:
+### `lithostitched-1.21.2`
 
-* [ ] Floor blocks
-* [ ] Wall blocks
-* [ ] Ceiling blocks
-* [ ] Trim blocks
-* [ ] Accent blocks
-* [ ] Damaged variants
-* [ ] Decorative variants
+Use for:
 
----
+* data-driven worldgen architecture;
+* registries/codecs;
+* pool manipulation concepts;
+* reusable worldgen utilities;
+* spatial/bounding lookup patterns;
+* future datapack extensibility.
 
-## 11.2 Weighted Blocks
+Do not add complex spatial indexing unless current profiling justifies it.
 
-* [ ] Weighted palette entries
-* [ ] Deterministic variation
-* [ ] Avoid obvious repeating patterns
-* [ ] Support region overrides
-* [ ] Support room overrides
+### `larion-world-generation-main`
 
----
+Use for:
 
-# Phase 12 — Custom Blocks
+* density functions;
+* noise composition;
+* domain warping;
+* irregular volumes;
+* organic cave shaping;
+* large natural chamber geometry.
 
-Create custom blocks only as required by the dimension.
+Use its concepts to improve bounded Labrinth cave volumes, not to replace the dimension generator.
 
-Potential categories:
+### `YUNGs-Better-Caves-1.21.1`
 
-## Structural
+Use for:
 
-* [ ] Labrinth wall
-* [ ] Labrinth floor
-* [ ] Labrinth ceiling
-* [ ] Trim
-* [ ] Panels
-* [ ] Damaged variants
+* cave/carver architecture;
+* cavern layers;
+* noise ranges;
+* separating sampling from carving;
+* configurable cave shapes;
+* Minecraft 1.21.1 cave implementation patterns.
 
-## Lighting
+### `Simple Structures Caves 1.21.10-11.jar`
 
-* [ ] Ceiling light
-* [ ] Wall light
-* [ ] Broken light
-* [ ] Flickering light
+After license and version validation, inspect for potential donor structures such as:
 
-## Environmental
+* cave shelters;
+* miner camps;
+* cave shrines;
+* small ruins;
+* tiny dungeons;
+* rest areas;
+* abandoned cave structures;
+* environmental storytelling pieces.
+
+Convert any permitted donor structure to Minecraft 1.21.1 before use.
+
+### `YUNGs-Better-Dungeons-1.21.1`
+
+Use as a primary architectural reference for:
+
+* assembling a complete dungeon graph before placement;
+* room/tunnel families;
+* bounded dungeon assembly;
+* child-piece expansion;
+* separation of layout from materialization.
 
-* [ ] Pipes
-* [ ] Grates
-* [ ] Vents
-* [ ] Utility panels
-* [ ] Signs
-* [ ] Decorative machinery
+### `YUNGs-Better-Mineshafts-1.21.1`
 
-For each custom block:
+Use as a primary reference for:
 
-* [ ] Register block
-* [ ] Register item if appropriate
-* [ ] Add model
-* [ ] Add texture
-* [ ] Add blockstate
-* [ ] Add loot table
-* [ ] Add tags
-* [ ] Add translation
-* [ ] Test placement/destruction
+* bounded branching;
+* turns;
+* intersections;
+* stairs;
+* side rooms;
+* terminal pieces;
+* branch depth;
+* maximum chain length;
+* bounding-box validation;
+* piece placement failure handling.
 
----
+### `YUNGs-Better-Strongholds-1.21.1`
 
-# Phase 13 — Lighting System
+Use for:
 
-## 13.1 Generated Lighting
+* rare large compounds;
+* multi-level landmarks;
+* hubs;
+* fortress-scale layouts;
+* libraries;
+* prisons;
+* chapels;
+* multi-floor structure composition;
+* major navigable interior networks.
 
-* [ ] Place lights during generation
-* [ ] Support region-specific lighting
-* [ ] Support room-specific lighting
-* [ ] Avoid excessive block entities
-* [ ] Avoid large lighting update spikes
+### `Dungeons And Villages DeeperAndDarker 1.21.1.jar`
 
----
+Treat as a high-priority underground dungeon donor candidate after exact license verification.
 
-## 13.2 Broken/Flickering Lighting
+Inspect for:
 
-If implemented:
+* chambers;
+* hallways;
+* intersections;
+* stair rooms;
+* treasure rooms;
+* trap rooms;
+* large rooms;
+* terminal rooms;
+* multi-floor pieces.
 
-* [ ] Flicker behavior
-* [ ] Performance-safe timing
-* [ ] No expensive per-tick scanning
-* [ ] Region-specific probability
-* [ ] Disabled state
-* [ ] Broken state
+Do not add Deeper and Darker as a required Labrinth dependency merely to preserve donor blocks.
 
----
+Replace foreign content with vanilla or Labrinth-owned equivalents.
 
-# Phase 14 — Decoration System
+### `DungeonCrawl-neoforge-1.21`
 
-Create post-structure decoration where useful.
+Use primarily for architecture and pacing unless direct GPL reuse is intentionally accepted.
 
-Potential decoration:
+Study:
 
-* [ ] Debris
-* [ ] Crates
-* [ ] Pipes
-* [ ] Vents
-* [ ] Shelving
-* [ ] Machinery
-* [ ] Furniture
-* [ ] Signs
-* [ ] Rubble
-* [ ] Plants
-* [ ] Water leaks
-* [ ] Ceiling damage
+* multi-floor roguelike pacing;
+* room-category ratios;
+* branch termination;
+* dungeon density;
+* reward-room frequency;
+* stair frequency;
+* repeated room variation;
+* large-dungeon progression.
 
-Architecture:
+### `Underground-Village-Multiloader-1.21.1-dev`
 
-* [ ] Region decoration pool
-* [ ] Room decoration pool
-* [ ] Weighted decoration
-* [ ] Placement validation
-* [ ] Deterministic decoration seed
+Treat as the first village donor candidate after local license verification.
 
----
+Inspect for:
 
-# Phase 15 — Loot System
+* town centers;
+* meeting points;
+* streets;
+* corners;
+* crossroads;
+* terminators;
+* houses;
+* butcher shops;
+* smiths;
+* fletchers;
+* shepherds;
+* armorers;
+* fishers;
+* tanneries;
+* cartographers;
+* libraries;
+* masons;
+* weaponsmiths;
+* temples;
+* stables;
+* farms;
+* animal pens.
 
-## 15.1 Loot Tables
+The building library is more valuable than its original world-placement system.
 
-* [ ] Basic loot table
-* [ ] Storage room loot
-* [ ] Rare room loot
-* [ ] Landmark loot
-* [ ] Region loot
-* [ ] Depth-scaled loot
+### `More Villages v0.2.3-alpha`
 
----
+Use as a secondary village donor candidate.
 
-## 15.2 Loot Progression
+Use it to broaden the visual vocabulary beyond one donor project.
 
-* [ ] Common loot
-* [ ] Uncommon loot
-* [ ] Rare loot
-* [ ] Very rare loot
-* [ ] Deep Labrinth loot
-* [ ] Landmark-exclusive loot
+Inspect:
 
----
+* residential buildings;
+* profession buildings;
+* civic structures;
+* farms;
+* decorative settlement pieces;
+* roads/paths;
+* alternate palettes.
 
-## 15.3 Loot Safety
+### `compatstructures-1.0.3.jar`
 
-* [ ] Prevent duplicate generation exploits where possible
-* [ ] Ensure loot containers use proper loot tables
-* [ ] Ensure container contents generate once
-* [ ] Ensure reloads do not reroll existing containers
+Treat as conditional until the exact local license is verified.
 
----
+Inspect for:
 
-# Phase 16 — Custom Items & Resources
+* mines;
+* catacombs;
+* cave structures;
+* puzzle rooms;
+* treasure chambers;
+* utility rooms;
+* unusual underground structures;
+* structure integration examples.
 
-Potential items:
+Do not add unrelated dependency mods merely to preserve donor blocks.
 
-* [ ] Labrinth materials
-* [ ] Artifacts
-* [ ] Keys
-* [ ] Navigation tools
-* [ ] Region-specific resources
-* [ ] Rare landmark rewards
-* [ ] Utility items
+### `mostructures-1.21.x`
 
-For each item:
+Treat as conditional/copyleft according to the current reference policy.
 
-* [ ] Registration
-* [ ] Translation
-* [ ] Texture/model
-* [ ] Creative tab integration if applicable
-* [ ] Recipe if applicable
-* [ ] Loot integration
-* [ ] Gameplay behavior
-* [ ] Dedicated-server validation
+Use primarily for:
 
----
+* outpost concepts;
+* hostile compounds;
+* markets;
+* fortified rooms;
+* castles;
+* barns;
+* landmark silhouettes;
+* small dungeon concepts.
 
-# Phase 17 — Entity Framework
+Direct reuse requires explicit license compatibility review.
 
-## 17.1 Entity Registration
+### `adventuredungeons-neoforge-1.21-1.3.1.jar`
 
-* [ ] Establish entity registration system
-* [ ] Separate entity AI from client rendering
-* [ ] Verify dedicated-server compatibility
+LOOK-ONLY unless explicit permission says otherwise.
 
----
+Study only:
 
-## 17.2 Labrinth-Aware AI
+* dungeon themes;
+* trial pacing;
+* underground camps;
+* treasure placement;
+* dungeon silhouettes;
+* room-category ideas;
+* labyrinth-style encounter design.
 
-Potential behaviors:
+Do not extract or adapt restricted assets.
 
-* [ ] Corridor wandering
-* [ ] Room wandering
-* [ ] Patrol routes
-* [ ] Darkness preference
-* [ ] Sound investigation
-* [ ] Door interaction
-* [ ] Region restrictions
-* [ ] Depth restrictions
-* [ ] Landmark guarding
+### `claustrophobic_dungeons-1.0.1-forge-1.20.1.jar`
 
----
+LOOK-ONLY.
 
-## 17.3 Initial Entities
+It also targets Minecraft 1.20.1.
 
-Do not add large numbers of mobs before the world generation system is stable.
+Study only:
 
-Possible first entities:
+* oppressive corridor density;
+* narrow proportions;
+* secrets;
+* traps;
+* hidden rooms;
+* claustrophobic dungeon pacing;
+* composition ideas visible through play/design.
 
-* [ ] Passive/neutral Labrinth creature
-* [ ] Basic hostile corridor creature
-* [ ] Rare room creature
-* [ ] Region-exclusive creature
-* [ ] Landmark guardian
+Do not use it as a 1.21.1 API or NBT authority.
 
 ---
 
-# Phase 18 — Spawn System
-
-* [ ] Region-based spawns
-* [ ] Room-based spawns
-* [ ] Depth-based spawns
-* [ ] Light-level considerations
-* [ ] Landmark-specific spawns
-* [ ] Spawn caps
-* [ ] Performance review
-* [ ] Prevent mobs from spawning inside walls
-* [ ] Prevent excessive mob density in enclosed spaces
+# 5. PHASE THREE - BUILD THE REUSABLE CONTENT PIPELINE
 
----
+Before copying dozens of structures into Labrinth, make sure imported/authored content has a clean home.
 
-# Phase 19 — Hazards
+Inspect current equivalents first.
 
-Potential hazards:
+Do not duplicate systems that already exist.
 
-* [ ] Collapsing sections
-* [ ] Damaged floors
-* [ ] Flooding
-* [ ] Electrical hazards
-* [ ] Darkness zones
-* [ ] Toxic/environmental zones
-* [ ] Traps
-* [ ] Region-specific hazards
+Where missing, implement or extend the following concepts.
 
-Hazards must:
+## 5.1 `LabrinthTemplatePiece`
 
-* [ ] Be deterministic where generated
-* [ ] Avoid excessive ticking
-* [ ] Be identifiable/fair enough for survival gameplay
-* [ ] Support multiplayer correctly
+A room, building, dungeon module, outpost module, or cave structure should be able to use an authored `.nbt` template.
 
----
+Support metadata such as:
 
-# Phase 20 — Ambient System
+```text
+id
+template
+bounds
+weight
+rarity
+minDepth
+maxDepth
+allowedRegions
+allowedFloors
+connectors
+rotationRules
+processorSet
+lootProfile
+populationProfile
+placementConditions
+tags / categories
+```
 
-## 20.1 Ambient Sounds
+## 5.2 Connector Normalization
 
-* [ ] Region ambient loops
-* [ ] Rare one-shot sounds
-* [ ] Distant machinery
-* [ ] Drips
-* [ ] Metallic noises
-* [ ] Environmental creaks
-* [ ] Unexplained distant sounds
+Imported jigsaw/structure markers must not automatically become arbitrary world connections.
 
----
+Translate useful donor markers into Labrinth connector metadata.
 
-## 20.2 Ambient Events
+Distinguish:
 
-Potential events:
+```text
+INTERNAL STRUCTURE CONNECTION
+```
 
-* [ ] Lights briefly dim
-* [ ] Lights flicker
-* [ ] Distant door sound
-* [ ] Sudden silence
-* [ ] Mechanical startup/shutdown
-* [ ] Environmental rumble
+from:
 
-Requirements:
+```text
+EXTERNAL LABRINTH CONNECTION
+```
 
-* [ ] Client-safe implementation
-* [ ] No heavy world scanning
-* [ ] Multiplayer compatibility
-* [ ] Configurable frequency
+The surrounding maze may connect only through explicit external connectors.
 
----
+## 5.3 `LabrinthProcessorSet`
 
-# Phase 21 — Navigation
+Support reusable transformation layers where practical:
 
-Getting lost should remain part of the experience, but navigation systems may exist.
+* standard;
+* abandoned;
+* damaged;
+* overgrown;
+* flooded;
+* ancient;
+* corrupted;
+* frozen;
+* faction-controlled;
+* Nether-influenced.
 
-Potential features:
+Prefer transforming one good structure over storing many near-identical copies.
 
-* [ ] Coordinate-compatible navigation
-* [ ] Custom compass behavior
-* [ ] Landmark locator
-* [ ] Breadcrumb item
-* [ ] Chalk/marker block
-* [ ] Player waypoint support
-* [ ] Map behavior research
-* [ ] Optional custom map solution
+## 5.4 `LabrinthPiecePool`
 
-Do not make navigation so powerful that it removes the intended exploration challenge.
+Structure content should be grouped into reusable weighted pools.
 
----
+Examples:
 
-# Phase 22 — Entry & Exit
+```text
+village/residential
+village/profession
+village/civic
+village/streets
+village/markets
+dungeon/entrances
+dungeon/travel
+dungeon/intersections
+dungeon/combat
+dungeon/treasure
+dungeon/traps
+dungeon/vertical
+dungeon/terminal
+cave/shelters
+cave/ruins
+cave/decorations
+outpost/guard
+outpost/barracks
+outpost/storage
+outpost/defense
+landmark/modules
+```
 
-## 22.1 Dimension Entry
+## 5.5 Import Validation
 
-Determine intended entry method.
+Add development validation for imported templates.
 
-Possible methods:
+Check:
 
-* [ ] Portal
-* [ ] Rare overworld structure
-* [ ] Crafted gateway
-* [ ] Key item
-* [ ] Command-only during early development
+* structure DataVersion;
+* unsupported blocks;
+* unsupported block entities;
+* unsupported entities;
+* donor namespaces;
+* foreign loot tables;
+* foreign processors;
+* foreign jigsaw pool references;
+* bounds;
+* connector alignment;
+* rotation;
+* world-height fit.
 
+Do not silently place `air` where a missing mod block was expected.
+
+Foreign dependencies must be deliberately mapped.
+
 ---
 
-## 22.2 Dimension Exit
+# 6. PHASE FOUR - CAVE GENERATION OVERHAUL
 
-Determine how players leave.
+Current cave content must become actual explorable cave spaces, not scattered cave decoration or rectangular rooms with stone.
 
-Potential methods:
+Use:
 
-* [ ] Return portal
-* [ ] Generated exit rooms
-* [ ] Recall item
-* [ ] Landmark portal
-* [ ] Death/respawn rules
+* `larion-world-generation-main`;
+* `YUNGs-Better-Caves-1.21.1`;
+* `Minecraft_Client_Source_1.21.1`;
+* `Simple Structures Caves 1.21.10-11.jar`;
+* `compatstructures-1.0.3.jar`.
 
-Ensure players cannot become permanently trapped unless that is explicitly intended.
+## 6.1 Bounded Cave Volumes
 
----
+Create or improve a Labrinth-owned bounded noise-volume system.
 
-# Phase 23 — Spawn / Entrance Area
+A cave compound should:
 
-Create a controlled initial arrival experience.
+1. reserve a complete 3D volume;
+2. derive its own deterministic cave seed;
+3. generate irregular walls, ceiling, floor, ledges, columns, pits, and chambers;
+4. remain entirely inside its reservation;
+5. expose explicit Labrinth connectors;
+6. preserve walkable routes between intended entrances;
+7. allow deterministic cave structures/decorations inside the same reservation.
 
-* [ ] Safe initial room
-* [ ] Guaranteed valid exits
-* [ ] Prevent immediate hostile spawn
-* [ ] Establish visual identity
-* [ ] Optional starter loot
-* [ ] Optional navigation hints
-* [ ] Ensure multiplayer players can arrive safely
+## 6.2 Cave Scales
 
----
+Support at minimum:
 
-# Phase 24 — Datapack Support
+* small cave pocket;
+* medium cavern;
+* large cave chamber;
+* rare enormous cavern.
 
-Where practical, make content data-driven.
+Large/rare caves should meaningfully interrupt the normal corridor rhythm.
 
-Potential datapack-controlled systems:
+## 6.3 Cave Families
 
-* [ ] Room definitions
-* [ ] Room weights
-* [ ] Region definitions
-* [ ] Region weights
-* [ ] Block palettes
-* [ ] Landmark definitions
-* [ ] Loot
-* [ ] Depth requirements
-* [ ] Generation conditions
+Support distinct cave families such as:
 
----
+* ordinary stone cavern;
+* ore-bearing cave;
+* flooded cavern;
+* overgrown grotto;
+* spider cavern;
+* ancient ruined cavern;
+* corrupted cavern;
+* collapsed cave;
+* underground lake chamber.
+
+Do not make these simple block-palette swaps.
+
+Their silhouettes, traversal, decoration density, hazards, and contained structures should differ.
+
+## 6.4 Cave Discoveries
 
-## 24.1 Reload Safety
+Populate appropriate cave compounds using legally reusable donor structures where possible:
 
-* [ ] Validate malformed data
-* [ ] Log clear errors
-* [ ] Avoid crashing entire worlds due to one malformed room definition where practical
-* [ ] Define behavior for missing templates
-* [ ] Define duplicate ID behavior
+* shelters;
+* abandoned mining stops;
+* ruins;
+* camps;
+* shrines;
+* tiny dungeons;
+* caches;
+* environmental story structures.
 
+These should be placed deterministically **inside the owned cave volume**.
+
 ---
 
-# Phase 25 — Configuration
+# 7. PHASE FIVE - DUNGEON GENERATION OVERHAUL
 
-Create config options where they provide meaningful player/server control.
+Use:
 
-Potential config:
+* `YUNGs-Better-Dungeons-1.21.1`;
+* `YUNGs-Better-Mineshafts-1.21.1`;
+* `YUNGs-Better-Strongholds-1.21.1`;
+* `Dungeons And Villages DeeperAndDarker 1.21.1.jar`;
+* `DungeonCrawl-neoforge-1.21`;
+* `compatstructures-1.0.3.jar`;
+* vanilla Minecraft structure source;
+* `adventuredungeons...` and `claustrophobic_dungeons...` for look-only design study.
 
-* [ ] Region size
-* [ ] Rare room frequency
-* [ ] Landmark frequency
-* [ ] Corridor branching
-* [ ] Dead-end frequency
-* [ ] Mob spawning
-* [ ] Ambient events
-* [ ] Hazard frequency
-* [ ] Loot scaling
-* [ ] Debug output
+## 7.1 Dungeon Grammar
 
-Avoid exposing configuration values that could easily create invalid generation unless validated.
+Dungeon complexes should be assembled logically before placement.
 
----
+A generic grammar may contain:
 
-# Phase 26 — Debugging Tools
+```text
+ENTRANCE
+    ↓
+TRAVEL
+    ↓
+BRANCH / INTERSECTION
+    ↓
+COMBAT / UTILITY / PUZZLE / PRISON / STORAGE
+    ↓
+OPTIONAL SECRET
+    ↓
+VERTICAL TRANSITION
+    ↓
+DEEPER BRANCH
+    ↓
+TREASURE / ELITE / TERMINAL
+    ↓
+EXIT or intentional dead-end reward
+```
 
-World generation will require robust debugging utilities.
+Do not produce random room soup.
 
-Potential tools:
+## 7.2 Hard Generation Budgets
 
-* [ ] Debug command root
-* [ ] Display current region
-* [ ] Display Labrinth depth
-* [ ] Display generation cell
-* [ ] Display room ID
-* [ ] Display landmark ID
-* [ ] Display generation seed
-* [ ] Force-generate test room
-* [ ] Teleport to region
-* [ ] Teleport to landmark
-* [ ] Dump generation information
-* [ ] Visualize connectors
-* [ ] Visualize bounding boxes
+Every dungeon assembly must have explicit limits such as:
 
-Debug functionality should not ship enabled unnecessarily.
+```text
+maxPieces
+maxDepth
+maxBranches
+maxHorizontalRadius
+maxVerticalRange
+maxFailedPlacementAttempts
+```
 
----
+No unbounded recursive generation.
 
-# Phase 27 — Generation Validation
+## 7.3 Dungeon Scales
 
-Create systematic generation testing.
+Support:
 
-## Seed Testing
+### Compact
 
-* [ ] Test at least 5 seeds
-* [ ] Test negative coordinates
-* [ ] Test large positive coordinates
-* [ ] Test large negative coordinates
-* [ ] Test near world origin
-* [ ] Test very large travel distances
+* one to three encounter spaces;
+* short side dungeon;
+* minor reward.
 
----
+### Standard
 
-## Reload Testing
+* several rooms;
+* branches;
+* one or more special rooms;
+* possible vertical change.
 
-* [ ] Generate area
-* [ ] Exit world
-* [ ] Reload world
-* [ ] Confirm geometry unchanged
-* [ ] Confirm loot unchanged after generation
-* [ ] Confirm landmarks unchanged
-* [ ] Confirm regions unchanged
+### Major Complex
 
----
+* many internal pieces;
+* distinct phases;
+* prison/barracks/storage/treasury/etc.;
+* multiple branches;
+* possible multiple floors;
+* clear entrance and exit logic.
 
-## Generation Order Testing
+### Rare Mega Dungeon
 
-* [ ] Approach area from north
-* [ ] Approach same area from south in clean copy
-* [ ] Compare result
-* [ ] Approach from east
-* [ ] Approach from west
-* [ ] Confirm matching layout
+Use sparingly.
 
----
+May include:
 
-# Phase 28 — Performance Testing
+* many rooms;
+* multiple floors;
+* hub spaces;
+* large chambers;
+* secrets;
+* elite rooms;
+* final reward spaces.
 
-## Chunk Generation
+This should be a major discovery, not normal background generation.
 
-* [ ] Measure generation time
-* [ ] Identify expensive generation stages
-* [ ] Review block placement count
-* [ ] Review structure validation cost
-* [ ] Review allocation hotspots
-* [ ] Review template loading behavior
+## 7.4 Donor Room Migration
 
----
+Where licensing permits, migrate useful Deeper and Darker dungeon templates into Labrinth-owned pools.
 
-## Runtime
+Replace:
 
-* [ ] Verify no large per-tick scans
-* [ ] Verify no unintended permanent chunk tickets
-* [ ] Verify no growing global generation cache
-* [ ] Verify no major memory leak
-* [ ] Verify mob AI remains acceptable in enclosed spaces
+* Deeper and Darker blocks;
+* foreign loot;
+* foreign entities;
+* foreign processor references.
 
----
+Preserve useful geometry.
 
-## Stress Tests
+Do not preserve foreign dependencies simply for donor assets.
 
-* [ ] High-speed creative flight
-* [ ] Teleport repeatedly across unexplored areas
-* [ ] Multiple players exploring separate areas
-* [ ] Chunk pregeneration test
-* [ ] Server restart after heavy exploration
+## 7.5 Dungeon Quality Rules
 
----
+A dungeon must:
 
-# Phase 29 — Multiplayer
-
-* [ ] Dedicated server starts successfully
-* [ ] Multiple players can enter dimension
-* [ ] Generation remains deterministic
-* [ ] Players exploring separate areas do not corrupt generation
-* [ ] Loot behaves correctly
-* [ ] Entity spawning behaves correctly
-* [ ] Client-only effects do not crash server
-* [ ] Dimension save data persists
-* [ ] Rejoining works correctly
+* have an intentional threshold from the Labrinth;
+* not be pierced by unrelated corridors;
+* not expose jail cells or treasury walls as accidental entrances;
+* be traversable;
+* have coherent progression;
+* contain meaningful encounter/reward variation;
+* survive reload unchanged;
+* materialize correctly across chunks.
 
 ---
 
-# Phase 30 — Compatibility
+# 8. PHASE SIX - VILLAGE AND SETTLEMENT OVERHAUL
 
-Test common systems and mods where reasonable.
+Use:
 
-Areas to validate:
+* `Underground-Village-Multiloader-1.21.1-dev`;
+* `More Villages v0.2.3-alpha`;
+* `StructureTutorialMod`;
+* `RepurposedStructures`;
+* `YUNGs-Better-Strongholds`;
+* `YUNGs-Better-Mineshafts`;
+* vanilla village source.
 
-* [ ] JEI/EMI-style item viewers if relevant
-* [ ] JourneyMap
-* [ ] Xaero's Minimap
-* [ ] Xaero's World Map
-* [ ] Waystone mods
-* [ ] Shader compatibility
-* [ ] Distant Horizons behavior
-* [ ] Chunk pregeneration tools
-* [ ] Performance mods
-* [ ] Server management tools
+The Labrinth village must feel like a settlement that **grew inside the maze**.
 
-Compatibility fixes should not compromise core generation safety.
+Do not paste an outdoor village underground.
 
----
+## 8.1 Village Component Pools
 
-# Phase 31 — Visual Identity
+Create reusable pools such as:
 
-## Dimension Visuals
+```text
+town centers
+streets
+crossroads
+terminators
+small houses
+large houses
+profession buildings
+libraries
+temples
+markets
+workshops
+farms
+stables
+animal pens
+storage
+guard posts
+communal dining
+utility spaces
+```
 
-* [ ] Finalize primary block palette
-* [ ] Finalize region palettes
-* [ ] Improve corridor variation
-* [ ] Improve room variety
-* [ ] Improve lighting
-* [ ] Improve ceiling variation
-* [ ] Improve floor variation
-* [ ] Add environmental storytelling
+Use legal donor templates first where they are appropriate.
 
----
+Author new structures only where donor coverage is inadequate or the Labrinth needs a stronger identity.
 
-## Client Effects
+## 8.2 Settlement Shapes
 
-Potential effects:
+Support more than one settlement topology.
 
-* [ ] Custom fog
-* [ ] Region fog variation
-* [ ] Custom sky behavior
-* [ ] Darkness effects
-* [ ] Ambient particles
-* [ ] Subtle color grading where feasible
+Examples:
 
-Keep client code isolated.
+### Chamber Village
 
----
+One enormous enclosed chamber containing multiple buildings.
 
-# Phase 32 — Environmental Storytelling
+### Street Village
 
-Add world details that imply history without requiring explicit exposition.
+A network of internal streets and buildings occupying several cells.
 
-Potential content:
+### Multi-Chamber Settlement
 
-* [ ] Signs
-* [ ] Abandoned supplies
-* [ ] Damaged machinery
-* [ ] Barricades
-* [ ] Camps
-* [ ] Strange markings
-* [ ] Broken doors
-* [ ] Failed experiments
-* [ ] Notes/books if appropriate
-* [ ] Region-specific environmental clues
+Several major chambers connected by settlement-owned passages.
 
----
+### Vertical Settlement
 
-# Phase 33 — Lore Framework
+Rare settlement using more than one floor.
 
-Optional.
+## 8.3 Functional Population
 
-* [ ] Define Labrinth origin concept
-* [ ] Define whether lore is explicit or ambiguous
-* [ ] Define major factions/entities if any
-* [ ] Define landmark lore
-* [ ] Define region lore
-* [ ] Add discoverable clues
-* [ ] Avoid requiring lore knowledge for normal gameplay
+Validate:
 
----
+* villagers spawn once;
+* sensible villager counts;
+* beds;
+* job-site blocks;
+* professions;
+* trading;
+* pathfinding between important settlement areas;
+* no population duplication after reload;
+* no duplicate population when multiple players approach from different directions.
 
-# Phase 34 — Rare & Strange Generation
+## 8.4 Village Variants
 
-Once normal generation is stable, introduce low-frequency anomalies.
+Build the system so later variants can include:
 
-Potential examples:
+* normal villager settlement;
+* ruined village;
+* abandoned village;
+* undead settlement;
+* illager occupation;
+* witch settlement;
+* Piglin settlement;
+* Ancient-region village;
+* Overgrown settlement;
+* Flooded settlement.
 
-* [ ] Extremely long corridor
-* [ ] Room with impossible-looking scale
-* [ ] Unusually tall chamber
-* [ ] Repeating room sequence
-* [ ] Strange lighting
-* [ ] Abnormal palette
-* [ ] Sudden architectural transition
-* [ ] Rare dead-silent region
-* [ ] Hidden passage
-* [ ] Secret wall
-* [ ] Massive empty room
+Do not implement every possible faction immediately if it would destabilize the core system.
 
-Rare generation should remain deterministic.
+Prioritize a robust framework and several high-quality examples.
 
 ---
 
-# Phase 35 — Special Rooms
-
-Create unique room classes.
-
-Potential categories:
-
-* [ ] Loot room
-* [ ] Trap room
-* [ ] Safe room
-* [ ] Puzzle room
-* [ ] Entity nest
-* [ ] Shrine
-* [ ] Machine room
-* [ ] Observation room
-* [ ] Archive
-* [ ] Laboratory
-* [ ] Garden
-* [ ] Flood control room
-* [ ] Security room
+# 9. PHASE SEVEN - HOSTILE OUTPOSTS AND OCCUPIED TERRITORIES
 
----
+Use:
 
-# Phase 36 — Secret Generation
+* `mostructures-1.21.x`;
+* `compatstructures-1.0.3.jar`;
+* `YUNGs-Better-Dungeons`;
+* `YUNGs-Better-Strongholds`;
+* vanilla hostile structures;
+* look-only dungeon references for encounter pacing.
 
-* [ ] Hidden doors
-* [ ] Breakable walls
-* [ ] Concealed corridors
-* [ ] Secret rooms
-* [ ] Rare caches
-* [ ] Alternate landmark entrances
-* [ ] Region-specific secrets
+Outposts must become more than one room with a different mob list.
 
----
+Initial factions remain:
 
-# Phase 37 — Gameplay Progression
+* Zombie;
+* Skeleton;
+* Illager;
+* Piglin;
+* Wither Skeleton.
 
-If progression becomes part of the design:
+Each faction should have its own architectural grammar.
 
-* [ ] Define progression goals
-* [ ] Define reasons to travel deeper
-* [ ] Define resource progression
-* [ ] Define loot progression
-* [ ] Define enemy progression
-* [ ] Define landmark progression
-* [ ] Define rare material progression
-* [ ] Avoid requiring a linear route through a nonlinear world
+## Zombie
 
----
+Favor:
 
-# Phase 38 — Boss / Major Encounter Framework
+* ruined living spaces;
+* barricades;
+* infected quarters;
+* storage remnants;
+* broken routes;
+* dense close-range combat.
 
-Optional and should occur only after entities and landmarks are stable.
+## Skeleton
 
-* [ ] Boss arena landmark support
-* [ ] Encounter trigger
-* [ ] Multiplayer scaling
-* [ ] Reward handling
-* [ ] Reset/re-entry rules
-* [ ] Save-state persistence
+Favor:
 
----
+* long sightlines;
+* firing platforms;
+* defensive lanes;
+* arrow supplies;
+* elevated positions;
+* choke points.
 
-# Phase 39 — API / Extensibility
+## Illager
 
-Long-term goal: allow additional Labrinth content without rewriting the core generator.
+Favor:
 
-Potential extension points:
+* organized fortification;
+* guard rooms;
+* barracks;
+* banners;
+* storage;
+* patrol loops;
+* prison/holding spaces.
 
-* [ ] Room registration API
-* [ ] Corridor registration API
-* [ ] Region registration API
-* [ ] Landmark registration API
-* [ ] Connector types
-* [ ] Block palettes
-* [ ] Loot hooks
-* [ ] Generation conditions
+## Piglin
 
----
+Favor:
 
-# Phase 40 — Documentation
+* Nether architectural accents;
+* defended storage;
+* gold-related visual language;
+* enclosed bastion-like sections;
+* faction-appropriate mob behavior.
 
-## README
+## Wither Skeleton
 
-* [ ] Keep README synchronized with implemented functionality
-* [ ] Remove planned features that are abandoned
-* [ ] Mark implemented features accurately
-* [ ] Add screenshots when available
-* [ ] Add installation instructions
-* [ ] Add requirements
-* [ ] Add compatibility notes
+Favor:
 
+* fortress-like rooms;
+* difficult choke points;
+* dark large chambers;
+* stronger rewards;
+* rare placement;
+* dangerous deep-region weighting.
+
+Support small outposts and rarer multi-room faction compounds.
+
 ---
 
-## Developer Documentation
+# 10. PHASE EIGHT - MAJOR ROOM AND MICRO-DISCOVERY EXPANSION
 
-* [ ] Document generation architecture
-* [ ] Document seed system
-* [ ] Document connector system
-* [ ] Document region system
-* [ ] Document room registration
-* [ ] Document landmark system
-* [ ] Document datapack format
-* [ ] Document debugging commands
+Use the donor library aggressively where legally allowed.
 
----
+Expand beyond the current room catalogue.
+
+Priority categories include:
+
+* ballrooms;
+* kitchens;
+* baths;
+* butcher rooms;
+* workshops;
+* mines;
+* catacombs;
+* crypts;
+* ruined shelters;
+* abandoned camps;
+* laboratories/utility spaces where region-appropriate;
+* storage vaults;
+* large dining halls;
+* prisons;
+* guard stations;
+* shrines;
+* temples;
+* hidden rooms;
+* ore caves;
+* treasury variants;
+* libraries;
+* civic spaces;
+* ruined markets;
+* giant support halls;
+* bridges;
+* balconies;
+* vertical rooms;
+* unusual dead ends;
+* secret passage destinations.
 
-# Phase 41 — Error Handling & Logging
+A content category is not complete because one rectangular version exists.
 
-* [ ] Use consistent mod logger
-* [ ] Remove excessive debug logging
-* [ ] Log invalid generation data clearly
-* [ ] Log missing structures clearly
-* [ ] Avoid log spam during normal chunk generation
-* [ ] Provide useful debug logging behind config/debug mode
-* [ ] Handle recoverable generation failures gracefully
+Use:
 
+* multiple silhouettes;
+* multiple connector patterns;
+* multiple scales;
+* processor variants;
+* region weighting;
+* depth weighting;
+* damage/occupation states;
+* contained structures;
+* decoration variation.
+
 ---
 
-# Phase 42 — Save Compatibility
+# 11. PHASE NINE - ENDLESS DISCOVERY ECOLOGY
 
-Before public releases:
+This is one of the most important parts of the task.
 
-* [ ] Define what generation changes may break old worlds
-* [ ] Avoid changing existing generated chunks
-* [ ] Ensure new content can generate in unexplored areas
-* [ ] Document incompatible generation changes
-* [ ] Consider generation version identifier
-* [ ] Consider storing generation version with Labrinth save data
+The Labrinth must not merely *support* special content.
 
----
+It must distribute discoveries in a way that keeps exploration compelling.
 
-# Phase 43 — Release Preparation
+## 11.1 Discovery Tiers
 
-## Code
+Introduce or formalize discovery categories such as:
 
-* [ ] Remove temporary code
-* [ ] Remove unused imports
-* [ ] Remove dead code
-* [ ] Review TODO comments
-* [ ] Review warnings
-* [ ] Review deprecated API usage
-* [ ] Review client/server separation
-* [ ] Review generation safety
-* [ ] Review performance
+```text
+MICRO
+COMMON
+UNCOMMON
+RARE
+MAJOR
+LEGENDARY
+```
 
----
+These are not required to be literal enum names if the current rarity model already supports equivalent behavior.
 
-## Assets
+Use the existing rarity/depth/region architecture where possible.
 
-* [ ] Validate textures
-* [ ] Validate models
-* [ ] Validate sounds
-* [ ] Validate translations
-* [ ] Validate loot tables
-* [ ] Validate tags
-* [ ] Validate structure files
-* [ ] Validate datapack resources
+## 11.2 Prevent Long Content Deserts
 
----
+Do not allow normal generation to accidentally create enormous distances containing only interchangeable hallways and generic rooms unless a deliberately sparse region calls for it.
 
-## Builds
+Add deterministic sampling/debug statistics that can answer:
 
-* [ ] Clean build succeeds
-* [ ] Client starts
-* [ ] Dedicated server starts
-* [ ] New world creates successfully
-* [ ] Labrinth generates successfully
-* [ ] Existing test world reloads successfully
-* [ ] Release JAR tested independently
+* expected distance between micro discoveries;
+* expected distance between uncommon rooms;
+* expected distance between compounds;
+* expected distance between villages;
+* expected distance between dungeons;
+* expected distance between major landmarks;
+* content distribution by region;
+* content distribution by logical depth;
+* content distribution by floor.
 
----
+Tune generation based on measured fresh-world output instead of intuition alone.
 
-# Phase 44 — Initial Public Release
-
-Minimum recommended release requirements:
-
-* [ ] Functional Labrinth dimension
-* [ ] Stable procedural generation
-* [ ] Corridors
-* [ ] Rooms
-* [ ] Junctions
-* [ ] Dead ends
-* [ ] Multiple floors
-* [ ] Deterministic generation
-* [ ] At least 3 meaningful regions
-* [ ] At least 1 landmark
-* [ ] Loot
-* [ ] Entry method
-* [ ] Exit method
-* [ ] Dedicated-server support
-* [ ] Multiplayer-tested
-* [ ] Configuration
-* [ ] Stable save/reload
-* [ ] No known infinite-generation bugs
-* [ ] No known chunk-loading loops
-* [ ] Acceptable generation performance
-* [ ] Updated README
-* [ ] Release changelog
+## 11.3 Depth Unlocks Variety
 
----
+As logical depth increases, progressively introduce:
 
-# Phase 45 — Post-Release Expansion
-
-After the first stable release:
-
-* [ ] Additional room sets
-* [ ] Additional corridor styles
-* [ ] Additional regions
-* [ ] Additional landmarks
-* [ ] More vertical structures
-* [ ] Rare anomalies
-* [ ] Environmental hazards
-* [ ] Entities
-* [ ] More loot
-* [ ] More custom blocks
-* [ ] Navigation tools
-* [ ] Lore
-* [ ] Boss encounters
-* [ ] Datapack expansion
-* [ ] API expansion
-* [ ] Compatibility improvements
-* [ ] Performance improvements
+* new room pools;
+* new dungeon room families;
+* larger dungeons;
+* rarer cave types;
+* rare settlement types;
+* stronger outposts;
+* stranger processors;
+* deeper-region landmarks;
+* more unusual layouts.
 
----
+Do not make the deepest areas simply use the same buildings with stronger mobs.
 
-# Continuous Requirements
+## 11.4 Region Identity
 
-These requirements apply throughout the entire project.
+Use processors, palettes, room pools, structures, and population to make:
 
-## Determinism
+* Abandoned;
+* Industrial;
+* Flooded;
+* Overgrown;
+* Ancient;
+* Corrupted
 
-* [ ] Same seed + same coordinates = same generation
-* [ ] Generation does not depend on exploration order
-* [ ] Generation does not depend on client state
+feel meaningfully different.
 
+The same donor structure may be transformed for multiple regions only when the transformed result still feels intentional.
+
 ---
 
-## Chunk Safety
+# 12. PHASE TEN - LOOT, POPULATION, AND ENCOUNTER RELIABILITY
 
-* [ ] No uncontrolled chunk loading
-* [ ] No chunk-generation recursion
-* [ ] No circular generation dependencies
-* [ ] Multi-chunk structures have deterministic ownership
+This task is primarily about generation, but discoveries are not meaningful if they are empty or broken.
 
----
+## 12.1 Loot
 
-## Performance
+Add authored Labrinth loot tables where practical for:
 
-* [ ] No unnecessary per-tick world scans
-* [ ] No unbounded searches
-* [ ] No unbounded recursion
-* [ ] No uncontrolled memory growth
-* [ ] Generation work remains bounded
+* villages;
+* compact dungeons;
+* major dungeons;
+* outposts;
+* treasuries;
+* cave caches;
+* rare landmarks.
 
----
+Risk and rarity should influence rewards.
 
-## Maintainability
+Avoid hardcoded chest inventories when loot tables fit.
 
-* [ ] Core systems remain modular
-* [ ] Large classes are split where appropriate
-* [ ] Special cases do not overwhelm core generation logic
-* [ ] Important algorithms are commented
-* [ ] Reusable systems are preferred over duplicated code
+## 12.2 Population
 
----
+All structure-owned population must be safe against:
+
+* chunk reload;
+* server restart;
+* multiple players approaching;
+* different chunk order;
+* intersecting-chunk materialization.
 
-## Dedicated Server
+## 12.3 Intelligent Hostile Placement
 
-* [ ] Common code does not reference client-only classes
-* [ ] Dedicated server builds
-* [ ] Dedicated server starts
-* [ ] World generation functions server-side without a client
+Use room/compound metadata to place hostile content deliberately.
 
+Do not scatter spawners or mobs without considering:
+
+* combat space;
+* sightlines;
+* entrances;
+* chokepoints;
+* room purpose;
+* faction;
+* depth;
+* region.
+
 ---
 
-# Milestone Checklist
+# 13. PHASE ELEVEN - DEBUG AND GENERATION INSPECTION TOOLS
 
-## Milestone 1 — Dimension Exists
+The existing locator is useful but is not enough by itself.
 
-* [x] Dimension registered
-* [x] Dimension accessible
-* [x] Safe spawn
-* [x] Build stable
+Extend debugging so generation can be proven quickly.
 
----
+Useful commands/tools may include:
 
-## Milestone 2 — Basic Labrinth
+```text
+/labrinth locate <type>
+/labrinth locate all
+/labrinth inspect
+/labrinth validate <type>
+/labrinth stats <radius>
+```
 
-* [ ] Corridors generate
-* [ ] Rooms generate
-* [ ] Connections work
-* [ ] Generation crosses chunks
-* [ ] Generation is deterministic
+Exact command names may differ to fit the existing command architecture.
 
----
+Development tooling should be able to report:
+
+* selected owner;
+* compound type;
+* variant;
+* floor;
+* logical depth;
+* region;
+* bounds;
+* external connectors;
+* intersecting chunks;
+* materialization status where safely observable;
+* template/pool selection;
+* population owner.
 
-## Milestone 3 — True Procedural World
+Debug tools must never change normal deterministic generation.
 
-* [ ] Continuous generation
-* [ ] Junctions
-* [ ] Dead ends
-* [ ] Multiple floors
-* [ ] Chunk-order independence
-* [ ] Stable save/reload
+Do not force-load huge areas merely to inspect them.
 
 ---
+
+# 14. PHASE TWELVE - AUTOMATED AND MANUAL VALIDATION
+
+This task is not complete until the generated world has been physically verified.
+
+## 14.1 Add Focused Game / Integration Tests Where Practical
+
+Prioritize tests that:
+
+* run against a fresh generated Labrinth;
+* use the same locator logic as runtime;
+* materialize the reported destination;
+* confirm the intended entrance exists;
+* confirm the compound shell exists;
+* confirm ordinary content yields;
+* reload chunks;
+* verify the structure remains consistent.
+
+Add representative coverage for:
+
+* cave compound;
+* village;
+* compact dungeon;
+* major dungeon;
+* each outpost faction;
+* major landmark.
+
+## 14.2 Connector Integrity
 
-## Milestone 4 — Regional Variety
+Verify:
 
-* [ ] Region system
-* [ ] At least 3 regions
-* [ ] Region palettes
-* [ ] Region-specific room pools
-* [ ] Region transitions
+* no village walls pierced by unrelated corridors;
+* no dungeon walls pierced;
+* no accidental entrance into cells/prisons;
+* no treasury wall penetration;
+* no ordinary room overlap;
+* unused connectors seal correctly;
+* intended external connectors align;
+* multi-floor exits/entrances align.
 
+## 14.3 Coordinates
+
+Test:
+
+* positive X/Z;
+* negative X;
+* negative Z;
+* negative X and Z;
+* large distance;
+* shallow depth;
+* deep logical depth;
+* all active floors;
+* near world-height limits.
+
+## 14.4 Chunk Order
+
+For representative multi-chunk discoveries:
+
+* approach from different directions;
+* generate different intersecting chunks first;
+* reload;
+* restart the server;
+* compare results.
+
+Same seed + same coordinates must produce the same discovery.
+
+## 14.5 Dedicated Server
+
+Run the dedicated server.
+
+Test multiple players approaching the same compound.
+
+Verify:
+
+* no duplicate structures;
+* no duplicate villagers;
+* no duplicate hostile populations;
+* no repeated loot initialization;
+* no client-only dependencies.
+
 ---
+
+# 15. PERFORMANCE REQUIREMENTS
+
+The Labrinth contains significantly more enclosed geometry than normal Minecraft terrain.
 
-## Milestone 5 — Exploration Gameplay
+Do not trade discoverability for runaway generation cost.
 
-* [ ] Loot
-* [ ] Rare rooms
-* [ ] Landmarks
-* [ ] Depth progression
-* [ ] Entry
-* [ ] Exit
+Avoid:
 
+* scanning large numbers of loaded/unloaded chunks;
+* forcing neighbors for validation;
+* unbounded flood fills;
+* unbounded recursive piece graphs;
+* repeatedly parsing structure files during generation;
+* recalculating complete compounds independently per intersecting chunk;
+* excessive block entities;
+* enormous persistent mob populations;
+* per-tick worldgen searches.
+
+Prefer:
+
+* preloaded/cached templates;
+* bounded layout assembly;
+* deterministic seeds;
+* cheap owner reconstruction;
+* chunk intersection tests;
+* reusable processors;
+* data-driven pools;
+* compact immutable metadata.
+
+Profile major generation changes when practical.
+
 ---
+
+# 16. IMPLEMENTATION ORDER
+
+Follow this order unless repository inspection proves a different dependency is required.
+
+## Step 1
+
+Audit the current runtime and prove which existing discovery systems actually materialize.
+
+## Step 2
+
+Fix any remaining seed, owner, reservation, materialization, or connector mismatch.
+
+## Step 3
+
+Inventory all 19 reference entries and identify:
+
+```text
+architecture references
+permitted donor candidates
+conditional/copyleft references
+look-only references
+version-mismatched data
+```
+
+## Step 4
+
+Implement/finish template import, connector normalization, processors, and reusable piece pools.
+
+## Step 5
+
+Create one imported or authored test template and prove it works through Labrinth ownership across chunk boundaries.
+
+## Step 6
+
+Overhaul cave compounds using bounded noise and cave-contained discovery pools.
+
+## Step 7
+
+Overhaul dungeon generation using complete logical assembly and reusable dungeon piece pools.
+
+## Step 8
+
+Overhaul enclosed villages using donor building/street pools under Labrinth compound ownership.
+
+## Step 9
+
+Overhaul faction outposts into distinct hostile compounds.
 
-## Milestone 6 — Atmosphere
+## Step 10
 
-* [ ] Lighting variation
-* [ ] Decorations
-* [ ] Ambient sounds
-* [ ] Ambient events
-* [ ] Environmental storytelling
+Expand major rooms and micro-discovery content.
 
+## Step 11
+
+Tune region/depth/rarity distribution so discovery remains compelling at long distances.
+
+## Step 12
+
+Add/finish loot, population, and encounter reliability.
+
+## Step 13
+
+Add generation statistics and focused automated tests.
+
+## Step 14
+
+Run fresh-world visual traversal.
+
+## Step 15
+
+Profile, build, run dedicated server, update docs, version, trace, and suggestions.
+
+Do not skip the visual traversal step.
+
 ---
+
+# 17. COMPLETION GATES
+
+A category may only be marked complete when it passes all applicable gates.
+
+## Registered
+
+The content definition exists.
+
+## Selectable
+
+The deterministic generator can legitimately choose it.
+
+## Locatable
+
+Debug lookup predicts the same location/type used by live generation.
+
+## Reserved
 
-## Milestone 7 — Living Labrinth
+Its complete bounds are owned and protected before normal content placement.
 
-* [ ] Entity framework
-* [ ] Labrinth-specific mobs
-* [ ] Region/depth spawning
-* [ ] Hazards
-* [ ] Landmark encounters
+## Materialized
 
+The structure physically appears in newly generated chunks.
+
+## Connected
+
+The intended Labrinth entrance is physically reachable and correctly aligned.
+
+## Traversable
+
+The player can actually move through the intended structure.
+
+## Populated
+
+Expected villagers, mobs, containers, or markers appear exactly once.
+
+## Persistent
+
+Reloading chunks/world/server does not duplicate or remove the discovery.
+
+## Chunk-Order Safe
+
+Approaching from another direction does not change it.
+
+## Player-Ready
+
+The result looks and plays like an intentional Labrinth discovery rather than test geometry.
+
+Only then mark it complete.
+
 ---
+
+# 18. DEFINITION OF DONE
 
-## Milestone 8 — Release Candidate
+This task is complete when all of the following are true:
 
-* [ ] Multiplayer stable
-* [ ] Dedicated server stable
-* [ ] Performance acceptable
-* [ ] Compatibility tested
-* [ ] README current
-* [ ] No critical generation bugs
-* [ ] Release build verified
+* [ ] The project builds successfully.
+* [ ] Dedicated-server startup succeeds.
+* [ ] Existing ordinary rooms/corridors/vertical generation still works.
+* [ ] The world remains deterministic and chunk-order independent.
+* [ ] No reference file under `References/**` was modified.
+* [ ] Every directly reused donor asset has an explicit license/source record.
+* [ ] Imported structure data is valid for Minecraft 1.21.1.
+* [ ] Foreign dependency blocks/entities are deliberately replaced or supported.
+* [ ] Caves physically generate as bounded, natural-looking explorable compounds.
+* [ ] Cave compounds can contain deterministic structures/points of interest.
+* [ ] Villages physically generate and are reachable through intentional Labrinth entrances.
+* [ ] Village buildings use a reusable pool rather than one hard-coded settlement.
+* [ ] Villagers, beds, job sites, and population persistence are validated.
+* [ ] Compact dungeons physically generate.
+* [ ] Multi-room dungeons physically generate.
+* [ ] At least one dungeon can span multiple chunks without penetration or duplication.
+* [ ] Dungeon entrances/exits are deliberate and traversable.
+* [ ] Zombie outposts physically generate.
+* [ ] Skeleton outposts physically generate.
+* [ ] Illager outposts physically generate.
+* [ ] Piglin outposts physically generate.
+* [ ] Wither-skeleton outposts physically generate.
+* [ ] Outpost factions have meaningfully different layouts/encounter design.
+* [ ] Major-room variety has expanded through reusable templates/pools/processors.
+* [ ] Region and logical depth materially influence discoverable content.
+* [ ] Fresh-world generation statistics show special content is actually discoverable.
+* [ ] Long exploration does not collapse into only generic corridors/rooms.
+* [ ] Representative discoveries survive chunk reload and server restart.
+* [ ] Representative discoveries remain identical under different chunk-generation order.
+* [ ] Automated discovery/materialization tests exist where practical.
+* [ ] Fresh-world manual visual traversal has been completed.
+* [ ] `README.md` reflects actual verified behavior.
+* [ ] `architecture.md` is updated if generation contracts changed.
+* [ ] `REFERENCE_IMPORTS.md` exists if donor assets/code were directly incorporated.
+* [ ] `TRACELOG.md` documents the implementation.
+* [ ] `SUGGESTIONS.md` contains related future improvements.
+* [ ] `build.gradle` version is incremented.
 
 ---
 
-# Definition of Done
-
-The core project may be considered feature-complete when:
-
-* [ ] The Labrinth exists as a standalone Minecraft dimension
-* [ ] The dimension can generate effectively indefinitely
-* [ ] The world consists primarily of interconnected interior architecture
-* [ ] Corridors, rooms, junctions, and vertical connections generate reliably
-* [ ] Generation remains deterministic
-* [ ] Chunk generation order does not corrupt layout
-* [ ] Multiple themed regions exist
-* [ ] Rare rooms and landmarks exist
-* [ ] Depth meaningfully affects exploration
-* [ ] Exploration provides meaningful rewards
-* [ ] The dimension has a functional entry and exit system
-* [ ] Multiplayer functions correctly
-* [ ] Dedicated servers function correctly
-* [ ] Save/reload behavior is stable
-* [ ] Performance is acceptable during normal exploration
-* [ ] No known uncontrolled generation loops exist
-* [ ] No known chunk-loading recursion exists
-* [ ] The architecture can support future rooms, regions, landmarks, and content without major rewrites
+# 19. FINAL IMPLEMENTATION REPORT
 
+When the task is complete, report:
+
+1. Current-generation failures discovered.
+2. Root causes fixed.
+3. Reference projects inspected.
+4. Donor assets incorporated.
+5. Licenses and attribution recorded.
+6. Template/pool/processor infrastructure created or extended.
+7. Cave-generation changes.
+8. Dungeon-generation changes.
+9. Village-generation changes.
+10. Outpost-generation changes.
+11. Major room/discovery additions.
+12. Region/depth distribution changes.
+13. Loot/population changes.
+14. Debugging/statistics tools added.
+15. Automated tests added.
+16. Fresh-world tests performed.
+17. Dedicated-server result.
+18. Performance observations.
+19. Build result.
+20. Remaining known limitations.
+
+Do not merely describe how this work could be implemented.
+
+**Implement it in the repository and prove it in a freshly generated Labrinth.**
+
 ---
+
+# Final Design Standard
 
-# Final Vision
+The purpose of this work is not to make The Labrinth a collection of imported Minecraft structures.
 
-The Labrinth should not feel like a dungeon placed inside Minecraft.
+The purpose is to use proven open/reference work to rapidly build a much richer **Labrinth-owned procedural ecosystem**.
 
-It should feel like Minecraft has loaded an entirely different kind of world.
+A player should be able to travel for thousands upon thousands of blocks and continue finding:
 
-A world without open horizons.
+```text
+another hallway
+another branch
+another floor
+another ruin
+another cave
+another settlement
+another dungeon
+another outpost
+another impossible room
+another landmark
+another thing they have not seen before
+```
 
-A world of corridors, doors, chambers, stairwells, shafts, forgotten machinery, distant sounds, strange landmarks, and paths that continue far beyond what the player can reasonably map.
+The system should be designed so adding future content increasingly means:
 
-There should always be another hallway.
+> **Add another discovery to the Labrinth's existing pools.**
 
-There should always be another room.
+not:
 
-And the player should never be entirely certain what exists beyond the next corner.
+> **Write another world generator.**

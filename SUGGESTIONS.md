@@ -1,3 +1,19 @@
+## 0.10.15 Seed-aligned compound debugging
+
+- Add a dedicated-server game test that runs the locator against a generated
+  fresh world and confirms each reported entrance materializes after teleport.
+- Add authored Labrinth loot tables and a game test that opens one chest per
+  village, dungeon, and outpost tier after chunk reload.
+- Add fresh-world visual traversal smoke coverage for cave formations, village
+  job-site pathing, dungeon entrances, and every outpost population.
+
+## 0.10.14 Reserved-compound follow-up
+
+- Add authored Labrinth loot tables and a game test that opens one chest per
+  village, dungeon, and outpost tier after chunk reload.
+- Add dedicated-server and fresh-world traversal smoke coverage for village
+  job-site pathing, dungeon entrances, and every outpost population.
+
 ## 0.10.13 Darkness toggle follow-up
 
 - Add a small in-game creative inspection command or keybind once debug tools

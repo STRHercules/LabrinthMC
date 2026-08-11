@@ -55,6 +55,19 @@ public record RoomDefinition(
         MULTI_EXIT,
         REWARD,
         DECORATIVE,
-        RARE
+        RARE,
+        CAVE,
+        JUNGLE,
+        SPIDER,
+        QUARTERS,
+        BARRACKS,
+        STOCKADE,
+        DINING,
+        LIBRARY,
+        TREASURY,
+        FROZEN,
+        MASSIVE,
+        CHAPEL,
+        JAIL
     }
 }

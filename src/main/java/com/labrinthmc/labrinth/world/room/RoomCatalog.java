@@ -251,6 +251,91 @@ public final class RoomCatalog {
                     Set.of(GenerationGrid.Direction.NORTH, GenerationGrid.Direction.SOUTH),
                     "chests/utility",
                     List.of("long/trim"),
+                    new StructurePiece.PlacementConditions(2, true)),
+            createSized(RoomKind.CAVE_CHAMBER, "cave_chamber", 3,
+                    StructurePiece.Rarity.UNCOMMON, RoomDefinition.InteriorStyle.CAVE,
+                    64, 12, 64, EnumSet.allOf(GenerationGrid.Direction.class),
+                    "chests/abandoned_mineshaft", List.of("cave/rock_formations"),
+                    new StructurePiece.PlacementConditions(2, false)),
+            createSized(RoomKind.GRAND_CAVE, "grand_cave", 1,
+                    StructurePiece.Rarity.VERY_RARE, RoomDefinition.InteriorStyle.CAVE,
+                    64, 18, 64, EnumSet.allOf(GenerationGrid.Direction.class),
+                    "chests/abandoned_mineshaft", List.of("cave/rock_formations"),
+                    new StructurePiece.PlacementConditions(3, false)),
+            createSized(RoomKind.JUNGLE_GROTTO, "jungle_grotto", 4,
+                    StructurePiece.Rarity.UNCOMMON, RoomDefinition.InteriorStyle.JUNGLE,
+                    64, 12, 64, Set.of(GenerationGrid.Direction.NORTH, GenerationGrid.Direction.SOUTH),
+                    null, List.of("jungle/overgrowth"),
+                    new StructurePiece.PlacementConditions(2, true)),
+            createSized(RoomKind.SPIDER_NEST, "spider_nest", 3,
+                    StructurePiece.Rarity.UNCOMMON, RoomDefinition.InteriorStyle.SPIDER,
+                    64, 10, 64, Set.of(GenerationGrid.Direction.NORTH, GenerationGrid.Direction.SOUTH),
+                    "chests/simple_dungeon", List.of("spider/webbing"),
+                    new StructurePiece.PlacementConditions(1, false)),
+            createSized(RoomKind.LARGE_SPIDER_NEST, "large_spider_nest", 1,
+                    StructurePiece.Rarity.RARE, RoomDefinition.InteriorStyle.SPIDER,
+                    64, 14, 64, EnumSet.allOf(GenerationGrid.Direction.class),
+                    "chests/simple_dungeon", List.of("spider/webbing"),
+                    new StructurePiece.PlacementConditions(2, false)),
+            createSized(RoomKind.WORKER_QUARTERS, "worker_quarters", 5,
+                    StructurePiece.Rarity.COMMON, RoomDefinition.InteriorStyle.QUARTERS,
+                    64, 8, 64, Set.of(GenerationGrid.Direction.NORTH, GenerationGrid.Direction.SOUTH),
+                    "chests/abandoned_mineshaft", List.of("quarters/beds"),
+                    new StructurePiece.PlacementConditions(1, true)),
+            createSized(RoomKind.OFFICER_QUARTERS, "officer_quarters", 2,
+                    StructurePiece.Rarity.RARE, RoomDefinition.InteriorStyle.QUARTERS,
+                    64, 10, 64, Set.of(GenerationGrid.Direction.NORTH, GenerationGrid.Direction.SOUTH),
+                    "chests/stronghold_corridor", List.of("quarters/beds"),
+                    new StructurePiece.PlacementConditions(2, true)),
+            createSized(RoomKind.BARRACKS, "barracks", 3,
+                    StructurePiece.Rarity.UNCOMMON, RoomDefinition.InteriorStyle.BARRACKS,
+                    64, 10, 64, Set.of(GenerationGrid.Direction.NORTH, GenerationGrid.Direction.SOUTH),
+                    "chests/stronghold_corridor", List.of("barracks/armory"),
+                    new StructurePiece.PlacementConditions(2, true)),
+            createSized(RoomKind.STOCKADE, "stockade", 2,
+                    StructurePiece.Rarity.UNCOMMON, RoomDefinition.InteriorStyle.STOCKADE,
+                    64, 10, 64, EnumSet.allOf(GenerationGrid.Direction.class),
+                    "chests/simple_dungeon", List.of("stockade/pens"),
+                    new StructurePiece.PlacementConditions(1, true)),
+            createSized(RoomKind.DINING_HALL, "dining_hall", 2,
+                    StructurePiece.Rarity.UNCOMMON, RoomDefinition.InteriorStyle.DINING,
+                    64, 12, 64, Set.of(GenerationGrid.Direction.NORTH, GenerationGrid.Direction.SOUTH),
+                    "chests/village/plains_house", List.of("dining/tables"),
+                    new StructurePiece.PlacementConditions(2, true)),
+            createSized(RoomKind.LIBRARY, "library", 2,
+                    StructurePiece.Rarity.UNCOMMON, RoomDefinition.InteriorStyle.LIBRARY,
+                    64, 14, 64, EnumSet.allOf(GenerationGrid.Direction.class),
+                    "chests/stronghold_library", List.of("library/shelves"),
+                    new StructurePiece.PlacementConditions(2, true)),
+            createSized(RoomKind.GRAND_LIBRARY, "grand_library", 1,
+                    StructurePiece.Rarity.VERY_RARE, RoomDefinition.InteriorStyle.LIBRARY,
+                    64, 18, 64, EnumSet.allOf(GenerationGrid.Direction.class),
+                    "chests/stronghold_library", List.of("library/shelves"),
+                    new StructurePiece.PlacementConditions(3, true)),
+            createSized(RoomKind.TREASURY, "treasury", 1,
+                    StructurePiece.Rarity.VERY_RARE, RoomDefinition.InteriorStyle.TREASURY,
+                    64, 10, 64, Set.of(GenerationGrid.Direction.NORTH),
+                    "chests/stronghold_corridor", List.of("treasury/vault"),
+                    new StructurePiece.PlacementConditions(2, true)),
+            createSized(RoomKind.FROZEN_CHAMBER, "frozen_chamber", 2,
+                    StructurePiece.Rarity.RARE, RoomDefinition.InteriorStyle.FROZEN,
+                    64, 10, 64, EnumSet.allOf(GenerationGrid.Direction.class),
+                    "chests/simple_dungeon", List.of("frozen/icicles"),
+                    new StructurePiece.PlacementConditions(1, true)),
+            createSized(RoomKind.MASSIVE_HALL, "massive_hall", 1,
+                    StructurePiece.Rarity.VERY_RARE, RoomDefinition.InteriorStyle.MASSIVE,
+                    64, 18, 64, EnumSet.allOf(GenerationGrid.Direction.class),
+                    "chests/stronghold_crossing", List.of("massive/columns"),
+                    new StructurePiece.PlacementConditions(3, true)),
+            createSized(RoomKind.CHAPEL, "chapel", 1,
+                    StructurePiece.Rarity.RARE, RoomDefinition.InteriorStyle.CHAPEL,
+                    64, 12, 64, EnumSet.allOf(GenerationGrid.Direction.class),
+                    "chests/stronghold_corridor", List.of("chapel/altar"),
+                    new StructurePiece.PlacementConditions(2, true)),
+            createSized(RoomKind.JAIL_BLOCK, "jail_block", 2,
+                    StructurePiece.Rarity.UNCOMMON, RoomDefinition.InteriorStyle.JAIL,
+                    64, 10, 64, Set.of(GenerationGrid.Direction.NORTH, GenerationGrid.Direction.SOUTH),
+                    "chests/stronghold_corridor", List.of("jail/cells"),
                     new StructurePiece.PlacementConditions(2, true)));
 
     private static final Map<StructurePiece, RoomDefinition> BY_PIECE = createPieceMap();
@@ -574,9 +659,7 @@ public final class RoomCatalog {
         if (localY == 0) {
             state = floorState(definition.interiorStyle(), localX, localZ);
         } else if (localY == height - 1) {
-            state = isLight(localX, localZ, center)
-                    ? Blocks.SEA_LANTERN.defaultBlockState()
-                    : Blocks.DEEPSLATE_TILES.defaultBlockState();
+            state = ceilingState(definition.interiorStyle(), localX, localZ, center);
         } else if (isBoundary(localX, localZ, width, depth)
                 && !isOpenFaceCell(
                         placed,
@@ -599,7 +682,8 @@ public final class RoomCatalog {
                     localY,
                     localZ,
                     width,
-                    depth);
+                    depth,
+                    height);
         }
         return region.paletteState(
                 state,
@@ -632,9 +716,34 @@ public final class RoomCatalog {
                 && (localX * 3 + localZ) % 17 == 0) {
             return Blocks.POLISHED_BLACKSTONE.defaultBlockState();
         }
-        return (localX + localZ) % 29 == 0
-                ? Blocks.DEEPSLATE_TILES.defaultBlockState()
-                : Blocks.POLISHED_DEEPSLATE.defaultBlockState();
+        return switch (style) {
+            case CAVE -> Math.floorMod(localX * 3 + localZ, 11) == 0
+                    ? Blocks.TUFF.defaultBlockState() : Blocks.STONE.defaultBlockState();
+            case JUNGLE -> Math.floorMod(localX + localZ, 9) == 0
+                    ? Blocks.MOSS_BLOCK.defaultBlockState() : Blocks.GRASS_BLOCK.defaultBlockState();
+            case FROZEN -> Math.floorMod(localX + localZ, 7) == 0
+                    ? Blocks.PACKED_ICE.defaultBlockState() : Blocks.SNOW_BLOCK.defaultBlockState();
+            default -> (localX + localZ) % 29 == 0
+                    ? Blocks.DEEPSLATE_TILES.defaultBlockState()
+                    : Blocks.POLISHED_DEEPSLATE.defaultBlockState();
+        };
+    }
+
+    private static BlockState ceilingState(
+            RoomDefinition.InteriorStyle style,
+            int localX,
+            int localZ,
+            GenerationConnectionRules.LocalCenter center) {
+        if (isLight(localX, localZ, center)) {
+            return Blocks.SEA_LANTERN.defaultBlockState();
+        }
+        return switch (style) {
+            case CAVE -> Blocks.STONE.defaultBlockState();
+            case JUNGLE -> Blocks.JUNGLE_LEAVES.defaultBlockState();
+            case FROZEN -> Blocks.ICE.defaultBlockState();
+            case MASSIVE -> Blocks.POLISHED_DEEPSLATE.defaultBlockState();
+            default -> Blocks.DEEPSLATE_TILES.defaultBlockState();
+        };
     }
 
     private static boolean isLight(
@@ -707,7 +816,8 @@ public final class RoomCatalog {
             int localY,
             int localZ,
             int width,
-            int depth) {
+            int depth,
+            int height) {
         return switch (style) {
             case EMPTY -> Blocks.AIR.defaultBlockState();
             case STORAGE -> storageState(localX, localY, localZ, width, depth);
@@ -719,6 +829,19 @@ public final class RoomCatalog {
             case REWARD -> rewardState(localX, localY, localZ, width, depth);
             case DECORATIVE -> decorativeState(localX, localY, localZ, width, depth);
             case RARE -> rareState(localX, localY, localZ, width, depth);
+            case CAVE -> caveState(localX, localY, localZ, width, depth, height);
+            case JUNGLE -> jungleState(localX, localY, localZ, width, depth);
+            case SPIDER -> spiderState(localX, localY, localZ, width, depth);
+            case QUARTERS -> quartersState(localX, localY, localZ, width, depth);
+            case BARRACKS -> barracksState(localX, localY, localZ, width, depth);
+            case STOCKADE -> stockadeState(localX, localY, localZ, width, depth);
+            case DINING -> diningState(localX, localY, localZ, width, depth);
+            case LIBRARY -> libraryState(localX, localY, localZ, width, depth);
+            case TREASURY -> treasuryState(localX, localY, localZ, width, depth);
+            case FROZEN -> frozenState(localX, localY, localZ, width, depth);
+            case MASSIVE -> massiveState(localX, localY, localZ, width, depth);
+            case CHAPEL -> chapelState(localX, localY, localZ, width, depth);
+            case JAIL -> jailState(localX, localY, localZ, width, depth);
         };
     }
 
@@ -824,6 +947,191 @@ public final class RoomCatalog {
         }
         if (y == 1 && x == width / 2 && z == Math.max(4, depth / 2 - 4)) {
             return Blocks.LEVER.defaultBlockState();
+        }
+        return Blocks.AIR.defaultBlockState();
+    }
+
+    private static BlockState caveState(
+            int x,
+            int y,
+            int z,
+            int width,
+            int depth,
+            int height) {
+        // Four seed-stable rock masses create a navigable cave silhouette. The
+        // previous modulo scatter placed isolated blocks with no readable
+        // formations; these bounded columns and ceiling drips leave clear
+        // paths while making the room visibly natural.
+        int[][] formations = {
+                {width / 4, depth / 4},
+                {width * 3 / 4, depth / 4},
+                {width / 4, depth * 3 / 4},
+                {width * 3 / 4, depth * 3 / 4}
+        };
+        for (int[] formation : formations) {
+            int dx = x - formation[0];
+            int dz = z - formation[1];
+            int radius = 3 + Math.floorMod(formation[0] * 7 + formation[1] * 11, 3);
+            int distanceSquared = dx * dx + dz * dz;
+            if (distanceSquared > radius * radius) {
+                continue;
+            }
+            int columnHeight = Math.max(
+                    3,
+                    height - 3 - Math.floorMod(formation[0] * 5 + formation[1] * 3, 4));
+            int surface = columnHeight - (Math.abs(dx) + Math.abs(dz)) / 2;
+            if (y >= 1 && y <= surface) {
+                return Math.floorMod(x + z, 5) == 0
+                        ? Blocks.TUFF.defaultBlockState()
+                        : Blocks.STONE.defaultBlockState();
+            }
+            int dripRadius = Math.max(1, radius - 2);
+            int hangingDepth = 1 + Math.floorMod(formation[0] + formation[1], 3);
+            if (distanceSquared <= dripRadius * dripRadius
+                    && y >= height - 1 - hangingDepth
+                    && y < height - 1) {
+                return Blocks.DRIPSTONE_BLOCK.defaultBlockState();
+            }
+        }
+
+        int edgeDistance = Math.min(Math.min(x, width - 1 - x), Math.min(z, depth - 1 - z));
+        if (edgeDistance <= 3 && y <= 2 + Math.floorMod(x * 3 + z * 5, 3)) {
+            return Blocks.TUFF.defaultBlockState();
+        }
+        return Blocks.AIR.defaultBlockState();
+    }
+
+    private static BlockState jungleState(int x, int y, int z, int width, int depth) {
+        if (y == 1 && Math.floorMod(x + z, 13) == 0) {
+            return Blocks.MOSS_CARPET.defaultBlockState();
+        }
+        if (y == 2 && Math.floorMod(x * 3 + z, 29) == 0) {
+            return Blocks.VINE.defaultBlockState();
+        }
+        if (y == 1 && x == width / 2 && z == depth / 2) {
+            return Blocks.WATER.defaultBlockState();
+        }
+        return Blocks.AIR.defaultBlockState();
+    }
+
+    private static BlockState spiderState(int x, int y, int z, int width, int depth) {
+        if (Math.floorMod(x * 7 + z * 3 + y, 9) == 0 && y >= 2) {
+            return Blocks.COBWEB.defaultBlockState();
+        }
+        if (y == 1 && x == width / 2 && z == depth / 2) {
+            return Blocks.SPAWNER.defaultBlockState();
+        }
+        return Blocks.AIR.defaultBlockState();
+    }
+
+    private static BlockState quartersState(int x, int y, int z, int width, int depth) {
+        if (y == 1 && x % 12 == 3 && z % 16 == 4) {
+            return Blocks.RED_BED.defaultBlockState();
+        }
+        if (y == 1 && (x == 4 || x == width - 5) && z % 12 == 6) {
+            return Blocks.CHEST.defaultBlockState();
+        }
+        return Blocks.AIR.defaultBlockState();
+    }
+
+    private static BlockState barracksState(int x, int y, int z, int width, int depth) {
+        if (y == 1 && x % 12 == 3 && (z == 8 || z == depth - 9)) {
+            return Blocks.RED_BED.defaultBlockState();
+        }
+        if (y == 1 && x == width / 2 && z == depth / 2) {
+            return Blocks.CHEST.defaultBlockState();
+        }
+        return Blocks.AIR.defaultBlockState();
+    }
+
+    private static BlockState stockadeState(int x, int y, int z, int width, int depth) {
+        if (y >= 1 && y <= 3 && (x == width / 3 || x == width * 2 / 3)
+                && z > 6 && z < depth - 7) {
+            return Blocks.OAK_FENCE.defaultBlockState();
+        }
+        if (y == 1 && x == width / 2 && z == depth / 2) {
+            return Blocks.CHEST.defaultBlockState();
+        }
+        return Blocks.AIR.defaultBlockState();
+    }
+
+    private static BlockState diningState(int x, int y, int z, int width, int depth) {
+        if (y == 1 && z == depth / 3 && x > 8 && x < width - 9) {
+            return Blocks.OAK_PLANKS.defaultBlockState();
+        }
+        if (y == 1 && z == depth / 3 - 1 && x % 6 == 0) {
+            return Blocks.OAK_STAIRS.defaultBlockState();
+        }
+        if (y == 1 && x == width - 8 && z == depth / 3) {
+            return Blocks.CAULDRON.defaultBlockState();
+        }
+        return Blocks.AIR.defaultBlockState();
+    }
+
+    private static BlockState libraryState(int x, int y, int z, int width, int depth) {
+        if (y <= 3 && (x == 4 || x == width - 5 || z == 4 || z == depth - 5)
+                && Math.floorMod(x + z, 4) == 0) {
+            return Blocks.BOOKSHELF.defaultBlockState();
+        }
+        if (y == 1 && x == width / 2 && z == depth / 2) {
+            return Blocks.LECTERN.defaultBlockState();
+        }
+        return Blocks.AIR.defaultBlockState();
+    }
+
+    private static BlockState treasuryState(int x, int y, int z, int width, int depth) {
+        if (y == 1 && ((x == 6 || x == width - 7) && z % 12 == 5)) {
+            return Blocks.CHEST.defaultBlockState();
+        }
+        if (y == 1 && x == width / 2 && z == depth / 2) {
+            return Blocks.GOLD_BLOCK.defaultBlockState();
+        }
+        return Blocks.AIR.defaultBlockState();
+    }
+
+    private static BlockState frozenState(int x, int y, int z, int width, int depth) {
+        if (y == 1 && Math.floorMod(x + z, 10) == 0) {
+            return Blocks.PACKED_ICE.defaultBlockState();
+        }
+        if (y >= 2 && Math.floorMod(x * 3 + z * 5, 19) == 0) {
+            return Blocks.POINTED_DRIPSTONE.defaultBlockState();
+        }
+        return Blocks.AIR.defaultBlockState();
+    }
+
+    private static BlockState massiveState(int x, int y, int z, int width, int depth) {
+        int inset = Math.max(6, width / 6);
+        if (y <= 5 && (x == inset || x == width - inset - 1)
+                && (z == inset || z == depth - inset - 1)) {
+            return Blocks.POLISHED_DEEPSLATE.defaultBlockState();
+        }
+        if (y == 1 && x == width / 2 && z == depth / 2) {
+            return Blocks.LANTERN.defaultBlockState();
+        }
+        return Blocks.AIR.defaultBlockState();
+    }
+
+    private static BlockState chapelState(int x, int y, int z, int width, int depth) {
+        if (y <= 4 && (x == width / 4 || x == width * 3 / 4)
+                && z > 8 && z < depth - 9) {
+            return Blocks.STONE_BRICKS.defaultBlockState();
+        }
+        if (y == 1 && x == width / 2 && z == depth - 10) {
+            return Blocks.QUARTZ_BLOCK.defaultBlockState();
+        }
+        if (y == 2 && x == width / 2 && z == depth - 10) {
+            return Blocks.CANDLE.defaultBlockState();
+        }
+        return Blocks.AIR.defaultBlockState();
+    }
+
+    private static BlockState jailState(int x, int y, int z, int width, int depth) {
+        if (y >= 1 && y <= 3 && (x % 12 == 4 || x % 12 == 5)
+                && z > 5 && z < depth - 6) {
+            return Blocks.IRON_BARS.defaultBlockState();
+        }
+        if (y == 1 && x == width / 2 && z == 8) {
+            return Blocks.CHEST.defaultBlockState();
         }
         return Blocks.AIR.defaultBlockState();
     }

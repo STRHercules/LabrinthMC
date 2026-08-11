@@ -1,3 +1,44 @@
+## 0.10.15 - Seed-aligned compound visibility and cave geometry
+
+### Task
+Fix the reported lack of visible villages, dungeons, and outposts, and replace
+scattered cave blocks with authored formations that can be located and tested
+in-game.
+
+### Changes
+- Reused the world seed captured by `LabrinthChunkGenerator.createState` for
+  runtime compounds, landmarks, rooms, depth, regions, vertical pieces, and
+  content selection so runtime generation matches coordinate lookup.
+- Added the operator command `/labrinth locate all` and
+  `/labrinth locate <theme> [radius]` for bounded compound discovery.
+- Reworked cave interiors into deterministic rock masses, ledges, and ceiling
+  drip formations with navigable paths.
+- Removed the Minecraft-registry-dependent cave assertion from the framework-
+  free self-check and incremented the mod version from `0.10.14` to `0.10.15`.
+
+### Implementation
+The generator stores the seed supplied when its structure state is created and
+routes all live catalog decisions through seed-based overloads after that
+point. The locator uses the same `SpecialStructureCatalog.findNearest` rules,
+while the compound owner and chunk-local reservation rules remain unchanged.
+Previously generated chunks are intentionally left untouched; the command
+reports destinations that must be materialized in unexplored chunks.
+
+### Rationale
+RandomState and world-seed overloads were producing different catalog choices,
+so a coordinate found by the development lookup was not guaranteed to be the
+structure rendered by the live generator. One shared seed path fixes the root
+cause without adding runtime searches or chunk loads.
+
+### Validation
+- `gradlew.bat generationSelfCheck --console=plain --no-daemon` passed.
+- Full `gradlew.bat build --console=plain --no-daemon` passed.
+- `gradlew.bat runServer --console=plain --no-daemon` loaded The Labrinth
+  `0.10.15` and reached `Done`.
+- `git diff --check` passed.
+- Manual fresh-world traversal and locator teleport smoke testing remain the
+  final in-game checks.
+
 ## 0.10.13 - Creative Darkness Inspection Toggle
 
 ### Task
@@ -1146,3 +1187,47 @@ of this shape-definition step and remain available for the planned next phase.
   codec errors.
 - `git diff --check` passed.
 - No files under `References/` or `TheLabrinth/` were modified.
+## 0.10.14 - Villages, Dungeons, Large Structures, and Room Expansion
+
+### Task
+Complete the requested Labrinth expansion with enclosed villages, dungeon
+scales, major room families, and zombie, skeleton, illager, piglin, and
+wither-skeleton outposts while preserving deterministic reserved-footprint
+generation.
+
+### Changes
+- Added a reusable origin-owned compound structure catalog with complete
+  multi-cell reservations, explicit external connectors, chunk-local
+  materialization, vanilla loot metadata, and owner-chunk population.
+- Added two enclosed village variants, compact and complex dungeons, an
+  enormous cave, a massive hall, and five faction-specific outpost variants.
+- Expanded the room catalog with natural, overgrown, hostile, civic, military,
+  archive, treasury, frozen, chapel, and jail families.
+- Added bounded compound lookup/debug-screen reporting and expanded the
+  framework-free self-check coverage.
+- Incremented the mod version to `0.10.14`.
+
+### Implementation
+Compound origins are restricted to deterministic eight-cell sector anchors.
+The selected definition, floor, region, depth, bounds, and open connectors are
+derived from the world seed and canonical neighbor decisions. The generator
+filters ordinary rooms, corridors, vertical pieces, and overlapping landmarks
+against the reserved bounds before rendering each intersecting chunk. Only the
+owner chunk populates a selected compound, and chest block entities receive
+stable vanilla loot-table metadata.
+
+### Rationale
+Using one compound-piece mechanism keeps villages, dungeons, large chambers,
+and outposts subject to the same ownership, collision, connector, chunk-order,
+and server-safety rules. Vanilla blocks and loot tables provide functional
+initial content while leaving custom Labrinth assets as a focused follow-up.
+
+### Validation
+- `gradlew.bat generationSelfCheck --console=plain --no-daemon` passed,
+  including deterministic bounds, reload, negative-coordinate, connector,
+  room-family, and all-outpost coverage.
+- `gradlew.bat build --console=plain --no-daemon` passed.
+- Dedicated server startup reached `Done` with Labrinth `0.10.14`.
+- `git diff --check` passed.
+- Manual in-world traversal of every structure family and command-level debug
+  locator coverage remain recommended follow-up smoke tests.

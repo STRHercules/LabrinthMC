@@ -45,6 +45,7 @@ public final class GenerationArchitectureSelfCheck {
         checkVerticalCatalogSystem();
         checkRegionCatalogSystem();
         checkDepthAndLandmarkSystems();
+        checkSpecialStructureSystem();
         System.out.println("Generation architecture self-check passed.");
     }
 
@@ -1417,6 +1418,114 @@ public final class GenerationArchitectureSelfCheck {
         fingerprint = Long.rotateLeft(fingerprint ^ bounds.minBlockX(), 31);
         fingerprint = Long.rotateLeft(fingerprint ^ bounds.minBlockZ(), 37);
         return Long.rotateLeft(fingerprint ^ bounds.maxYExclusive(), 41);
+    }
+
+    private static void checkSpecialStructureSystem() {
+        long worldSeed = 0x1020304050607080L;
+        List<SpecialStructureCatalog.Instance> selected = new ArrayList<>();
+        Set<SpecialStructureDefinition.Theme> themes = new HashSet<>();
+        for (int seedOffset = 0; seedOffset < 64; seedOffset++) {
+            for (int sectorX = 1; sectorX <= 32; sectorX++) {
+                for (int sectorZ = 1; sectorZ <= 12; sectorZ++) {
+                    Optional<SpecialStructureCatalog.Instance> candidate =
+                            SpecialStructureCatalog.select(
+                                    worldSeed + seedOffset,
+                                    new GenerationGrid.Cell(
+                                            (long) sectorX * SpecialStructureCatalog.SECTOR_SIZE_CELLS,
+                                            (long) sectorZ * SpecialStructureCatalog.SECTOR_SIZE_CELLS));
+                    candidate.ifPresent(instance -> {
+                        selected.add(instance);
+                        themes.add(instance.definition().theme());
+                    });
+                }
+            }
+        }
+        require(!selected.isEmpty(), "bounded seed scan finds an origin-owned compound");
+        require(themes.contains(SpecialStructureDefinition.Theme.VILLAGE),
+                "seed scan exposes an enclosed Labrinth village");
+        require(themes.contains(SpecialStructureDefinition.Theme.COMPACT_DUNGEON)
+                        && themes.contains(SpecialStructureDefinition.Theme.DUNGEON_COMPLEX),
+                "seed scan exposes both dungeon scales");
+        require(themes.containsAll(Set.of(
+                        SpecialStructureDefinition.Theme.ZOMBIE_OUTPOST,
+                        SpecialStructureDefinition.Theme.SKELETON_OUTPOST,
+                        SpecialStructureDefinition.Theme.ILLAGER_OUTPOST,
+                        SpecialStructureDefinition.Theme.PIGLIN_OUTPOST,
+                        SpecialStructureDefinition.Theme.WITHER_SKELETON_OUTPOST)),
+                "seed scan exposes every registered monster outpost variant: " + themes);
+        require(themes.containsAll(Set.of(
+                        SpecialStructureDefinition.Theme.VILLAGE,
+                        SpecialStructureDefinition.Theme.COMPACT_DUNGEON,
+                        SpecialStructureDefinition.Theme.DUNGEON_COMPLEX,
+                        SpecialStructureDefinition.Theme.ENORMOUS_CAVE,
+                        SpecialStructureDefinition.Theme.MASSIVE_HALL)),
+                "seed scan exposes every registered large-structure family");
+
+        for (SpecialStructureDefinition definition : SpecialStructureCatalog.definitions()) {
+            require(definition.piece().kind() == StructurePiece.Kind.COMPOUND
+                            && definition.piece().width() >= 64
+                            && definition.piece().connectors().size() >= 2,
+                    "compound definitions reserve bounded space with deliberate entrances");
+            require(definition.piece().allowedRegions().containsAll(definition.allowedRegions()),
+                    "compound region restrictions are carried by the piece contract");
+        }
+
+        SpecialStructureCatalog.Instance first = selected.get(0);
+        List<SpecialStructureCatalog.Instance> firstPass = SpecialStructureCatalog.intersecting(
+                worldSeed,
+                first.piece().ownerChunk());
+        List<SpecialStructureCatalog.Instance> reloadPass = SpecialStructureCatalog.intersecting(
+                worldSeed,
+                first.piece().ownerChunk());
+        require(firstPass.stream().mapToLong(GenerationArchitectureSelfCheck::specialFingerprint)
+                        .boxed().toList()
+                        .equals(reloadPass.stream()
+                                .mapToLong(GenerationArchitectureSelfCheck::specialFingerprint)
+                                .boxed().toList()),
+                "compound selection is reload-stable");
+        require(firstPass.stream().anyMatch(instance ->
+                        instance.originCell().equals(first.originCell())),
+                "owner chunk rematerializes the same compound");
+        GenerationGrid.Bounds reserved = first.piece().bounds();
+        require(reserved.maxBlockXExclusive() - reserved.minBlockX() >= 64
+                        && reserved.maxBlockZExclusive() - reserved.minBlockZ() >= 64
+                        && GenerationConstraints.LABRINTH.contains(reserved),
+                "compound reservation keeps its complete transformed bounds");
+        require(SpecialStructureCatalog.select(
+                        worldSeed,
+                        new GenerationGrid.Cell(-SpecialStructureCatalog.SECTOR_SIZE_CELLS, 0))
+                        .isEmpty(),
+                "the origin sector remains reserved for the stable spawn area");
+        for (SpecialStructureCatalog.Instance instance : firstPass) {
+            for (GenerationGrid.Direction direction : GenerationGrid.Direction.values()) {
+                GenerationGrid.Cell outside = new GenerationGrid.Cell(
+                        instance.originCell().x() - 1, instance.originCell().z());
+                if (direction == GenerationGrid.Direction.NORTH
+                        || direction == GenerationGrid.Direction.SOUTH) {
+                    outside = new GenerationGrid.Cell(
+                            instance.originCell().x(),
+                            instance.originCell().z() + (direction == GenerationGrid.Direction.NORTH ? -1 : 2));
+                }
+                SpecialStructureCatalog.connectionAt(worldSeed, outside, direction, instance.floorIndex());
+            }
+        }
+        require(SpecialStructureCatalog.findNearest(
+                        worldSeed,
+                        first.definition().theme(),
+                        first.originCell(),
+                        8).isPresent(),
+                "bounded special-structure debug lookup finds an existing structure");
+    }
+
+    private static long specialFingerprint(SpecialStructureCatalog.Instance instance) {
+        var bounds = instance.piece().bounds();
+        long fingerprint = instance.definition().id().hashCode();
+        fingerprint = Long.rotateLeft(fingerprint ^ instance.originCell().x(), 11);
+        fingerprint = Long.rotateLeft(fingerprint ^ instance.originCell().z(), 17);
+        fingerprint = Long.rotateLeft(fingerprint ^ instance.floorIndex(), 23);
+        fingerprint = Long.rotateLeft(fingerprint ^ instance.depth(), 29);
+        fingerprint = Long.rotateLeft(fingerprint ^ bounds.minBlockX(), 31);
+        return Long.rotateLeft(fingerprint ^ bounds.maxBlockZExclusive(), 41);
     }
 
     private static GenerationGrid.Direction gridDirection(Connector.Direction direction) {
