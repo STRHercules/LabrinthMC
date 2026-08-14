@@ -244,3 +244,31 @@
   generated corridor and room variants are introduced.
 - Add an isolated template/block-population test once Phase 4 can materialize
   a placed piece in a test world.
+## 0.10.16 Tiered discovery follow-up
+
+- Add a dedicated-server game test that teleports to `/labrinth locate` results,
+  materializes each reported entrance, and compares cave/dungeon block samples
+  after chunk reload and server restart.
+- Move the current procedural `LabrinthTemplatePiece` adapter behind a resource
+  loader once the first licensed 1.21.1 NBT donor is selected, preserving the
+  same normalized connector and reservation contract.
+- Tune sector chance and tier weights from fresh-world `/labrinth stats` output
+  after profiling generation time and measuring actual player travel distances.
+
+## 0.10.17 Runtime population follow-up
+
+- Add a bootstrapped game test that activates one configured spawner near a
+  creative player and verifies the intended faction entity appears.
+- Add a player-facing structure traversal smoke checklist for entrances,
+  vertical paths, chest interaction, and hostile encounter space after the
+  remaining visual tooling limitation is resolved.
+
+## 0.10.18 Runtime compound follow-up
+
+- Add a dedicated-server game test that traverses a selected compound from
+  each declared entrance and checks that route openings do not erase furniture
+  or encounter blocks.
+- Profile the distributed population pass across large compounds and add a
+  bounded population budget if future authored structures add many anchors.
+- Replace the current procedural compound detail layer with licensed 1.21.1
+  templates only after a donor and attribution plan are selected.

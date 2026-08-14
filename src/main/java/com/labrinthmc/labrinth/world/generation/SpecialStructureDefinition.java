@@ -18,6 +18,7 @@ public record SpecialStructureDefinition(
         Theme theme,
         int weight,
         StructurePiece.Rarity rarity,
+        LabrinthDiscoveryTier tier,
         int minDepth,
         int maxDepth,
         int minFloor,
@@ -32,6 +33,7 @@ public record SpecialStructureDefinition(
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(theme, "theme");
         Objects.requireNonNull(rarity, "rarity");
+        Objects.requireNonNull(tier, "tier");
         Objects.requireNonNull(allowedRegions, "allowedRegions");
         Objects.requireNonNull(piece, "piece");
         Objects.requireNonNull(sections, "sections");
@@ -73,11 +75,26 @@ public record SpecialStructureDefinition(
                 && (allowedRegions.isEmpty() || allowedRegions.contains(region));
     }
 
+    /** Keep the tier visible to distribution tools without duplicating rarity rules. */
+    public int distributionWeight(int depth) {
+        if (depth < minDepth || depth > maxDepth) {
+            return 0;
+        }
+        int depthDistance = Math.max(0, tier.preferredMinimumDepth() - depth);
+        return Math.max(1, weight / (1 + depthDistance));
+    }
+
     public enum Theme {
         VILLAGE,
         COMPACT_DUNGEON,
         DUNGEON_COMPLEX,
+        DUNGEON_MEGA,
+        CAVE_POCKET,
         ENORMOUS_CAVE,
+        FLOODED_CAVERN,
+        OVERGROWN_GROTTO,
+        ANCIENT_CAVE,
+        CORRUPTED_CAVE,
         MASSIVE_HALL,
         ZOMBIE_OUTPOST,
         SKELETON_OUTPOST,
@@ -97,6 +114,22 @@ public record SpecialStructureDefinition(
         SPIDERS
     }
 
+    public boolean isCave() {
+        return switch (theme) {
+            case CAVE_POCKET, ENORMOUS_CAVE, FLOODED_CAVERN, OVERGROWN_GROTTO,
+                    ANCIENT_CAVE, CORRUPTED_CAVE -> true;
+            default -> false;
+        };
+    }
+
+    public boolean isOutpost() {
+        return switch (theme) {
+            case ZOMBIE_OUTPOST, SKELETON_OUTPOST, ILLAGER_OUTPOST,
+                    PIGLIN_OUTPOST, WITHER_SKELETON_OUTPOST -> true;
+            default -> false;
+        };
+    }
+
     public enum SectionKind {
         PLAZA,
         HOUSE,
@@ -106,7 +139,13 @@ public record SpecialStructureDefinition(
         DUNGEON_ROOM,
         CELL,
         TREASURY,
-        WATCHTOWER
+        WATCHTOWER,
+        STREET,
+        LIBRARY,
+        BARRACKS,
+        SHRINE,
+        BRIDGE,
+        STORAGE
     }
 
     public record Section(

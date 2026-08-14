@@ -1231,3 +1231,151 @@ initial content while leaving custom Labrinth assets as a focused follow-up.
 - `git diff --check` passed.
 - Manual in-world traversal of every structure family and command-level debug
   locator coverage remain recommended follow-up smoke tests.
+## 0.10.16 - Tiered discovery ecology and bounded cave families
+
+### Task
+Continue the `TASK.md` reference-integration and endless-discovery overhaul
+by making the existing compound path richer, measurable, and safer to reload.
+
+### Changes
+- Completed discovery-tier metadata and added deterministic named weighted-pool
+  support for compound selection.
+- Added a mega dungeon, vertical village, cave pocket, flooded cavern,
+  overgrown grotto, ancient cave, and corrupted cave definitions.
+- Replaced rectangular cave interiors with seed-derived bounded chambers,
+  connector tunnels, ore-bearing walls, flooded levels, columns, overgrowth,
+  and contained points of interest.
+- Applied Labrinth-owned regional processors to structural compound blocks.
+- Added authored Labrinth loot tables for the new cave and legendary-dungeon
+  discoveries.
+- Added `/labrinth stats` and `/labrinth inspect`; statistics report selected
+  compounds by theme, tier, region, and average sector distance.
+- Prevented repeated population callbacks from duplicating matching entities.
+- Expanded the framework-free self-check for tiers, statistics, cave bounds,
+  cave openness, and reload stability; incremented the mod version to `0.10.16`.
+
+### Implementation
+Compound selection still has one deterministic eight-cell sector owner and
+the complete `COMPOUND` bounds remain reserved before ordinary content is
+materialized. Cave shape variation is derived from the selected instance's
+stable layout seed; the complement of its chamber/tunnel volume is filled with
+rock, so irregular caves remain enclosed and chunk-local. No donor source or
+asset was copied into Labrinth; reference material was used only for bounded
+piece-graph, template, processor, and structure-authoring concepts.
+
+### Rationale
+The prior catalogue could select only a small set of rectangular shells and
+offered no distribution evidence for long exploration. Extending the shared
+owner/materializer path keeps determinism and chunk-order safety while making
+new discoveries materially different and observable.
+
+### Validation
+- `gradlew.bat generationSelfCheck --console=plain --no-daemon` passed.
+- `gradlew.bat compileJava --console=plain --no-daemon` passed.
+- `git diff --check` passed.
+- Dedicated-server startup and fresh-world visual traversal remain the final
+  manual/runtime gates for this broader task.
+
+### References
+- `Minecraft_Client_Source_1.21.1`: version-matched structure bounds,
+  chunk-local materialization, and vanilla block/loot behavior were treated as
+  the API/data-format authority.
+- `YUNGs-Better-Dungeons-1.21.1`, `YUNGs-Better-Mineshafts-1.21.1`, and
+  `YUNGs-Better-Strongholds-1.21.1`: bounded compound and piece-graph design
+  concepts were adapted without copying source or assets.
+- `StructureTutorialMod-1.21.11-Neoforge-Jigsaw` and
+  `RepurposedStructures-1.21.5-MDG`: template, pool, and processor concepts
+  were translated to Labrinth-owned metadata; their newer target versions were
+  not treated as direct API authorities.
+
+## 0.10.17 - Faction spawner payloads
+
+### Task
+Complete the runtime audit of selected Labrinth compounds and repair any
+player-facing population failure found in a fresh world.
+
+### Changes
+- Added versioned `SpawnData.entity.id` block-entity metadata to every
+  materialized dungeon/outpost spawner.
+- Mapped the existing compound population enum to the matching vanilla mob
+  without changing the owner-chunk population path.
+- Added a framework-free assertion covering representative and empty spawner
+  population mappings; incremented the mod version to `0.10.17`.
+
+### Rationale
+Minecraft 1.21.1 accepts the visible spawner block without an entity payload,
+but an empty `SpawnData` produces an inert spawner. Deriving the payload from
+the existing definition keeps faction behavior deterministic and avoids a
+second per-theme allowlist.
+
+### Validation
+- Fresh world seed `6604864803347238643` materialized village, dungeon,
+  cave, and outpost samples; chest loot metadata, cave openness, hostile
+  population, chunk reload, and server restart were checked through RCON.
+- The audit exposed the missing spawner payload before this fix; a fresh
+  post-fix world reported `SpawnData.entity.id = minecraft:zombie` and kept
+  that payload after server restart.
+- `gradlew.bat generationSelfCheck --console=plain --no-daemon`,
+  `gradlew.bat build --console=plain --no-daemon`, and `git diff --check`
+  passed. Manual visual traversal remains a separate unverified gate.
+
+### References
+- `Minecraft_Client_Source_1.21.1` `BaseSpawner` and `SpawnData`: verified
+  that `SpawnData.entity.id` is required for a spawner to resolve an entity.
+
+## 0.10.18 - Compound route and population safety
+
+### Task
+Complete the fresh-world runtime audit for the redesigned rooms, villages,
+dungeons, caves, and faction compounds, fixing player-visible materialization
+failures discovered during traversal probes.
+
+### Changes
+- Closed section walls at floor level while retaining only the widened,
+  declared doorway apertures.
+- Moved functional room details off the internal route centerlines so routes
+  no longer erase beds, chests, workstations, spawners, lights, lecterns,
+  barrels, or shrine centers; authored ladders remain protected by the route
+  pass.
+- Changed compound entity population from unsafe owner-chunk writes to
+  deterministic position-owning chunks, with per-position duplicate checks.
+- Extended the self-check to cover route-safe functional coordinates and
+  floor-level section walls; incremented the mod version to `0.10.18`.
+
+### Implementation
+Compound selection and complete footprint reservation remain origin-owned.
+During `spawnOriginalMobs`, a population position is skipped unless the
+current `WorldGenRegion` center chunk owns that position. This prevents
+`WorldGenRegion` difficulty/entity calls from reaching outside the generation
+region while preserving deterministic anchors across a multi-chunk compound.
+Repeated callbacks test the small position AABB for the matching faction
+entity before spawning again.
+
+### Rationale
+The first fresh-world probe exposed an actual `WorldGenRegion` out-of-bounds
+crash when an owner chunk attempted to populate entities at distant section
+centers. The same probe showed that internal routes were overwriting the
+functional center details and that floor-level section walls were open. Fixing
+the shared route and population paths preserves the procedural design while
+making generated discoveries safe and usable.
+
+### Validation
+- `gradlew.bat compileJava generationSelfCheck --console=plain --no-daemon`
+  passed after the route and population changes.
+- Fresh dedicated world `codex-validation-0811-e` with seed
+  `6604864803347238643` reached `Done` without the prior population crash.
+- RCON probes confirmed a village bed, village chest, repaired section wall,
+  chest loot metadata, compact/complex dungeon spawners, zombie-outpost
+  spawner payload, open cave centers, enclosing cave walls, and representative
+  villager, dungeon, outpost, and cave populations.
+- A clean server stop and restart preserved the chest loot NBT, spawner
+  payload, and representative villager/zombie/spider populations.
+- Temporary RCON/world settings were restored to the default `run` values and
+  no dedicated server remains running.
+- Manual first-person visual traversal and two-account multiplayer smoke
+  remain unverified; RCON proves block/entity state, not rendered navigation.
+
+### References
+- `Minecraft_Client_Source_1.21.1`: `WorldGenRegion` chunk ownership,
+  block-entity data, and structure materialization behavior were verified
+  against the target version.

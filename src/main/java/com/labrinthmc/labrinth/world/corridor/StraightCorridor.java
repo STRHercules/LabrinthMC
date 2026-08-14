@@ -439,6 +439,21 @@ public final class StraightCorridor {
         } else if (localZ == length - 1
                 && !openDirections.contains(GenerationGrid.Direction.SOUTH.rotated(rotation))) {
             state = Blocks.DEEPSLATE_BRICKS.defaultBlockState();
+        } else if (localY == 1 && localX == WIDTH / 2
+                && Math.floorMod(localZ, LIGHT_SPACING) == LIGHT_SPACING / 2) {
+            // A narrow contrasting runner makes long corridors readable from
+            // a distance without narrowing the five-block walking aperture.
+            state = Blocks.GRAY_CARPET.defaultBlockState();
+        } else if (localY == 1
+                && (localX == 1 || localX == WIDTH - 2)
+                && Math.floorMod(localZ, 16) == 8) {
+            state = Blocks.POLISHED_DEEPSLATE_SLAB.defaultBlockState();
+        } else if (localY == HEIGHT - 2
+                && Math.floorMod(localZ, 16) == 8
+                && localX > 0 && localX < WIDTH - 1) {
+            // Ceiling ribs are the corridor equivalent of the room corner
+            // pillars and break up the repeated flat tunnel profile.
+            state = Blocks.DEEPSLATE_BRICKS.defaultBlockState();
         } else {
             state = Blocks.AIR.defaultBlockState();
         }

@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
@@ -478,7 +479,7 @@ public final class RoomCatalog {
         Objects.requireNonNull(placement, "placement");
         Objects.requireNonNull(region, "region");
         PlacedStructurePiece placed = placement.piece();
-        definitionFor(placed.definition());
+        RoomDefinition definition = definitionFor(placed.definition());
         var bounds = placed.bounds();
         ChunkPos chunkPos = chunk.getPos();
         long minX = Math.max(bounds.minBlockX(), (long) chunkPos.getMinBlockX());
@@ -500,13 +501,22 @@ public final class RoomCatalog {
                             Math.toIntExact(worldZ),
                             region);
                     if (!state.isAir()) {
-                        chunk.setBlockState(
-                                blockPos.set(
-                                        Math.toIntExact(worldX),
-                                        worldY,
-                                        Math.toIntExact(worldZ)),
-                                state,
-                                false);
+                        BlockPos position = blockPos.set(
+                                Math.toIntExact(worldX),
+                                worldY,
+                                Math.toIntExact(worldZ));
+                        chunk.setBlockState(position, state, false);
+                        if ((state.is(Blocks.CHEST) || state.is(Blocks.BARREL))
+                                && placement.piece().definition().lootConfiguration().table().isPresent()) {
+                            setLootTable(
+                                    chunk,
+                                    position,
+                                    state,
+                                    placement.piece().definition().lootConfiguration().table().get(),
+                                    lootSeed(placement.piece(), worldX, worldY, worldZ));
+                        } else if (state.is(Blocks.SPAWNER)) {
+                            setSpawnerData(chunk, position, spawnerEntityId(definition));
+                        }
                     }
                 }
             }
@@ -676,14 +686,18 @@ public final class RoomCatalog {
         } else if (isSpawnMarker(definition, localX, localY, localZ)) {
             state = Blocks.SOUL_TORCH.defaultBlockState();
         } else {
-            state = interiorState(
-                    definition.interiorStyle(),
-                    localX,
-                    localY,
-                    localZ,
-                    width,
-                    depth,
-                    height);
+            BlockState architecture = architecturalState(
+                    definition.interiorStyle(), localX, localY, localZ, width, depth, height);
+            state = architecture.isAir()
+                    ? interiorState(
+                            definition.interiorStyle(),
+                            localX,
+                            localY,
+                            localZ,
+                            width,
+                            depth,
+                            height)
+                    : architecture;
         }
         return region.paletteState(
                 state,
@@ -723,6 +737,16 @@ public final class RoomCatalog {
                     ? Blocks.MOSS_BLOCK.defaultBlockState() : Blocks.GRASS_BLOCK.defaultBlockState();
             case FROZEN -> Math.floorMod(localX + localZ, 7) == 0
                     ? Blocks.PACKED_ICE.defaultBlockState() : Blocks.SNOW_BLOCK.defaultBlockState();
+            case TREASURY -> Math.floorMod(localX + localZ, 7) == 0
+                    ? Blocks.POLISHED_BLACKSTONE.defaultBlockState()
+                    : Blocks.GILDED_BLACKSTONE.defaultBlockState();
+            case CHAPEL -> Math.floorMod(localX * 3 + localZ, 9) == 0
+                    ? Blocks.CHISELED_STONE_BRICKS.defaultBlockState()
+                    : Blocks.STONE_BRICKS.defaultBlockState();
+            case MASSIVE -> Blocks.POLISHED_DEEPSLATE.defaultBlockState();
+            case JAIL, STOCKADE -> Math.floorMod(localX + localZ, 11) == 0
+                    ? Blocks.DEEPSLATE_TILES.defaultBlockState()
+                    : Blocks.POLISHED_DEEPSLATE.defaultBlockState();
             default -> (localX + localZ) % 29 == 0
                     ? Blocks.DEEPSLATE_TILES.defaultBlockState()
                     : Blocks.POLISHED_DEEPSLATE.defaultBlockState();
@@ -742,8 +766,87 @@ public final class RoomCatalog {
             case JUNGLE -> Blocks.JUNGLE_LEAVES.defaultBlockState();
             case FROZEN -> Blocks.ICE.defaultBlockState();
             case MASSIVE -> Blocks.POLISHED_DEEPSLATE.defaultBlockState();
+            case CHAPEL -> Blocks.STONE_BRICKS.defaultBlockState();
+            case TREASURY -> Blocks.POLISHED_BLACKSTONE.defaultBlockState();
+            case SPIDER -> Blocks.DEEPSLATE_BRICKS.defaultBlockState();
             default -> Blocks.DEEPSLATE_TILES.defaultBlockState();
         };
+    }
+
+    /**
+     * Give every room family a silhouette before its purpose-specific props
+     * are added.  The old renderer only differed at a few y=1 coordinates,
+     * which made large rooms read as the same empty box from a distance.
+     */
+    private static BlockState architecturalState(
+            RoomDefinition.InteriorStyle style,
+            int x,
+            int y,
+            int z,
+            int width,
+            int depth,
+            int height) {
+        int insetX = Math.max(3, width / 6);
+        int insetZ = Math.max(3, depth / 6);
+        boolean corner = (x == insetX || x == width - 1 - insetX)
+                && (z == insetZ || z == depth - 1 - insetZ);
+        boolean pillarFamily = switch (style) {
+            case CHAMBER, CROSS, MULTI_EXIT, RARE, LIBRARY, TREASURY, MASSIVE, CHAPEL,
+                    DINING, JAIL, STOCKADE, BARRACKS -> true;
+            default -> false;
+        };
+        if (corner && pillarFamily && y >= 1 && y <= Math.min(4, height - 2)) {
+            return switch (style) {
+                case TREASURY -> Blocks.GILDED_BLACKSTONE.defaultBlockState();
+                case CHAPEL -> Blocks.CHISELED_STONE_BRICKS.defaultBlockState();
+                case LIBRARY -> Blocks.DARK_OAK_LOG.defaultBlockState();
+                case JAIL, STOCKADE -> Blocks.IRON_BARS.defaultBlockState();
+                default -> Blocks.CHISELED_DEEPSLATE.defaultBlockState();
+            };
+        }
+        if (y == height - 2 && (x == insetX || x == width - 1 - insetX)
+                && Math.floorMod(z, 12) == 5
+                && style != RoomDefinition.InteriorStyle.CAVE
+                && style != RoomDefinition.InteriorStyle.JUNGLE) {
+            return style == RoomDefinition.InteriorStyle.CHAPEL
+                    ? Blocks.STONE_BRICKS.defaultBlockState()
+                    : Blocks.DEEPSLATE_BRICKS.defaultBlockState();
+        }
+        if (y == 1) {
+            if (style == RoomDefinition.InteriorStyle.CHAPEL
+                    && x == width / 2
+                    && z > 4 && z < depth - 5
+                    && Math.floorMod(z, 4) == 0) {
+                return Blocks.RED_CARPET.defaultBlockState();
+            }
+            if (style == RoomDefinition.InteriorStyle.LIBRARY
+                    && x == width / 2
+                    && Math.floorMod(z, 6) == 2) {
+                return Blocks.OAK_SLAB.defaultBlockState();
+            }
+            if (style == RoomDefinition.InteriorStyle.MASSIVE
+                    && (x == width / 2 || z == depth / 2)
+                    && Math.floorMod(x + z, 8) == 0) {
+                return Blocks.POLISHED_DEEPSLATE_SLAB.defaultBlockState();
+            }
+            if (style == RoomDefinition.InteriorStyle.EMPTY
+                    && (x == width / 2 || z == depth / 2)
+                    && Math.floorMod(x + z, 17) == 0) {
+                return Blocks.GRAY_CARPET.defaultBlockState();
+            }
+        }
+        if (style == RoomDefinition.InteriorStyle.FROZEN
+                && y >= 2 && y < height - 1
+                && (x == insetX || z == insetZ)
+                && Math.floorMod(x * 5 + z * 3 + y, 7) == 0) {
+            return Blocks.PACKED_ICE.defaultBlockState();
+        }
+        if (style == RoomDefinition.InteriorStyle.CAVE
+                && y >= 2 && y < height - 1
+                && Math.floorMod(x * 13 + z * 7 + y * 3, 47) == 0) {
+            return Blocks.DRIPSTONE_BLOCK.defaultBlockState();
+        }
+        return Blocks.AIR.defaultBlockState();
     }
 
     private static boolean isLight(
@@ -850,6 +953,10 @@ public final class RoomCatalog {
         if (y == 1 && (x == sideInset || x == width - 1 - sideInset) && z % 8 == 3) {
             return Blocks.BARREL.defaultBlockState();
         }
+        if (y >= 2 && y <= 4 && (x == sideInset || x == width - 1 - sideInset)
+                && z % 8 >= 3 && z % 8 <= 5) {
+            return Blocks.BOOKSHELF.defaultBlockState();
+        }
         int chestInset = Math.max(4, width / 4);
         if (y == 1 && (x == chestInset || x == width - 1 - chestInset) && z % 16 == 7) {
             return Blocks.CHEST.defaultBlockState();
@@ -864,10 +971,17 @@ public final class RoomCatalog {
                 && (z == zInset || z == depth - 1 - zInset)) {
             return Blocks.POLISHED_DEEPSLATE.defaultBlockState();
         }
+        if (y == 1 && Math.abs(x - width / 2) <= 2 && Math.abs(z - depth / 2) <= 2) {
+            return Blocks.POLISHED_DEEPSLATE_SLAB.defaultBlockState();
+        }
         return Blocks.AIR.defaultBlockState();
     }
 
     private static BlockState utilityState(int x, int y, int z, int width, int depth) {
+        if (y == 2 && z == depth / 3 && x > 5 && x < width - 6
+                && Math.floorMod(x, 8) == 0) {
+            return Blocks.IRON_BARS.defaultBlockState();
+        }
         if (y != 1) {
             return Blocks.AIR.defaultBlockState();
         }
@@ -888,6 +1002,9 @@ public final class RoomCatalog {
         if (x == step * 5 && z == centerZ) {
             return Blocks.LEVER.defaultBlockState();
         }
+        if (z == centerZ + 4 && x > 5 && x < width - 6 && x % 8 == 0) {
+            return Blocks.BARREL.defaultBlockState();
+        }
         return Blocks.AIR.defaultBlockState();
     }
 
@@ -898,6 +1015,10 @@ public final class RoomCatalog {
                 && (z == zInset || z == depth - 1 - zInset)) {
             return Blocks.CHISELED_DEEPSLATE.defaultBlockState();
         }
+        if (y == 1 && (x == width / 2 || z == depth / 2)
+                && Math.floorMod(x + z, 9) == 0) {
+            return Blocks.GRAY_CARPET.defaultBlockState();
+        }
         return Blocks.AIR.defaultBlockState();
     }
 
@@ -906,6 +1027,9 @@ public final class RoomCatalog {
         if (y <= 2 && (x == xInset || x == width - 1 - xInset) && z % 16 == 8) {
             return Blocks.DEEPSLATE_BRICKS.defaultBlockState();
         }
+        if (y == 1 && x == width / 2 && z > 5 && z < depth - 6 && z % 6 == 2) {
+            return Blocks.GRAY_CARPET.defaultBlockState();
+        }
         return Blocks.AIR.defaultBlockState();
     }
 
@@ -913,12 +1037,20 @@ public final class RoomCatalog {
         if (y == 1 && x == width / 2 && z == depth / 2) {
             return Blocks.LODESTONE.defaultBlockState();
         }
+        if (y == 1 && (x == width / 2 || z == depth / 2)
+                && Math.abs(x - width / 2) + Math.abs(z - depth / 2) == 8) {
+            return Blocks.CHISELED_DEEPSLATE.defaultBlockState();
+        }
         return Blocks.AIR.defaultBlockState();
     }
 
     private static BlockState rewardState(int x, int y, int z, int width, int depth) {
         if (y == 1 && x == width / 2 && z == Math.max(4, depth - 16)) {
             return Blocks.CHEST.defaultBlockState();
+        }
+        if (y <= 2 && Math.abs(x - width / 2) <= 2
+                && Math.abs(z - Math.max(4, depth - 16)) <= 2) {
+            return Blocks.GILDED_BLACKSTONE.defaultBlockState();
         }
         return Blocks.AIR.defaultBlockState();
     }
@@ -930,6 +1062,9 @@ public final class RoomCatalog {
         if (y == 1 && (x == Math.max(3, width / 4) || x == width - 1 - Math.max(3, width / 4))
                 && z == Math.max(3, depth / 4)) {
             return Blocks.CHAIN.defaultBlockState();
+        }
+        if (y == 1 && Math.floorMod(x * 5 + z * 3, 23) == 0) {
+            return Blocks.COBBLESTONE_SLAB.defaultBlockState();
         }
         return Blocks.AIR.defaultBlockState();
     }
@@ -947,6 +1082,10 @@ public final class RoomCatalog {
         }
         if (y == 1 && x == width / 2 && z == Math.max(4, depth / 2 - 4)) {
             return Blocks.LEVER.defaultBlockState();
+        }
+        if (y >= 1 && y <= 4 && (x == width / 2 - 6 || x == width / 2 + 6)
+                && z == depth / 2) {
+            return Blocks.AMETHYST_BLOCK.defaultBlockState();
         }
         return Blocks.AIR.defaultBlockState();
     }
@@ -1008,6 +1147,10 @@ public final class RoomCatalog {
         if (y == 2 && Math.floorMod(x * 3 + z, 29) == 0) {
             return Blocks.VINE.defaultBlockState();
         }
+        if (y >= 2 && y <= 4 && (x == 5 || x == width - 6)
+                && Math.floorMod(z, 9) == 2) {
+            return Blocks.JUNGLE_LOG.defaultBlockState();
+        }
         if (y == 1 && x == width / 2 && z == depth / 2) {
             return Blocks.WATER.defaultBlockState();
         }
@@ -1016,6 +1159,10 @@ public final class RoomCatalog {
 
     private static BlockState spiderState(int x, int y, int z, int width, int depth) {
         if (Math.floorMod(x * 7 + z * 3 + y, 9) == 0 && y >= 2) {
+            return Blocks.COBWEB.defaultBlockState();
+        }
+        if (y >= 2 && y <= 4 && (x == 5 || x == width - 6)
+                && Math.floorMod(z, 10) == 3) {
             return Blocks.COBWEB.defaultBlockState();
         }
         if (y == 1 && x == width / 2 && z == depth / 2) {
@@ -1028,8 +1175,14 @@ public final class RoomCatalog {
         if (y == 1 && x % 12 == 3 && z % 16 == 4) {
             return Blocks.RED_BED.defaultBlockState();
         }
+        if (y == 2 && x % 12 == 3 && z % 16 == 4) {
+            return Blocks.BOOKSHELF.defaultBlockState();
+        }
         if (y == 1 && (x == 4 || x == width - 5) && z % 12 == 6) {
             return Blocks.CHEST.defaultBlockState();
+        }
+        if (y == 1 && x == width / 2 && z == depth / 2) {
+            return Blocks.LANTERN.defaultBlockState();
         }
         return Blocks.AIR.defaultBlockState();
     }
@@ -1037,6 +1190,9 @@ public final class RoomCatalog {
     private static BlockState barracksState(int x, int y, int z, int width, int depth) {
         if (y == 1 && x % 12 == 3 && (z == 8 || z == depth - 9)) {
             return Blocks.RED_BED.defaultBlockState();
+        }
+        if (y == 2 && x % 12 == 3 && (z == 8 || z == depth - 9)) {
+            return Blocks.BARREL.defaultBlockState();
         }
         if (y == 1 && x == width / 2 && z == depth / 2) {
             return Blocks.CHEST.defaultBlockState();
@@ -1048,6 +1204,10 @@ public final class RoomCatalog {
         if (y >= 1 && y <= 3 && (x == width / 3 || x == width * 2 / 3)
                 && z > 6 && z < depth - 7) {
             return Blocks.OAK_FENCE.defaultBlockState();
+        }
+        if (y == 1 && (x == width / 3 || x == width * 2 / 3)
+                && z == depth / 2) {
+            return Blocks.IRON_DOOR.defaultBlockState();
         }
         if (y == 1 && x == width / 2 && z == depth / 2) {
             return Blocks.CHEST.defaultBlockState();
@@ -1064,6 +1224,9 @@ public final class RoomCatalog {
         }
         if (y == 1 && x == width - 8 && z == depth / 3) {
             return Blocks.CAULDRON.defaultBlockState();
+        }
+        if (y == 1 && x == 8 && z == depth / 3) {
+            return Blocks.SMOKER.defaultBlockState();
         }
         return Blocks.AIR.defaultBlockState();
     }
@@ -1086,6 +1249,10 @@ public final class RoomCatalog {
         if (y == 1 && x == width / 2 && z == depth / 2) {
             return Blocks.GOLD_BLOCK.defaultBlockState();
         }
+        if (y >= 1 && y <= 3 && (x == 6 || x == width - 7)
+                && (z == 6 || z == depth - 7)) {
+            return Blocks.GILDED_BLACKSTONE.defaultBlockState();
+        }
         return Blocks.AIR.defaultBlockState();
     }
 
@@ -1095,6 +1262,9 @@ public final class RoomCatalog {
         }
         if (y >= 2 && Math.floorMod(x * 3 + z * 5, 19) == 0) {
             return Blocks.POINTED_DRIPSTONE.defaultBlockState();
+        }
+        if (y == 1 && (x == 7 || x == width - 8) && z % 12 == 4) {
+            return Blocks.BLUE_ICE.defaultBlockState();
         }
         return Blocks.AIR.defaultBlockState();
     }
@@ -1107,6 +1277,10 @@ public final class RoomCatalog {
         }
         if (y == 1 && x == width / 2 && z == depth / 2) {
             return Blocks.LANTERN.defaultBlockState();
+        }
+        if (y >= 1 && y <= 5 && (x == width / 2 || z == depth / 2)
+                && Math.floorMod(x + z, 16) == 0) {
+            return Blocks.POLISHED_DEEPSLATE.defaultBlockState();
         }
         return Blocks.AIR.defaultBlockState();
     }
@@ -1122,6 +1296,9 @@ public final class RoomCatalog {
         if (y == 2 && x == width / 2 && z == depth - 10) {
             return Blocks.CANDLE.defaultBlockState();
         }
+        if (y == 1 && x == width / 2 && z > 8 && z < depth - 10 && z % 8 == 0) {
+            return Blocks.RED_CARPET.defaultBlockState();
+        }
         return Blocks.AIR.defaultBlockState();
     }
 
@@ -1130,10 +1307,60 @@ public final class RoomCatalog {
                 && z > 5 && z < depth - 6) {
             return Blocks.IRON_BARS.defaultBlockState();
         }
+        if (y == 1 && x % 12 == 6 && z % 10 == 4) {
+            return Blocks.CHEST.defaultBlockState();
+        }
         if (y == 1 && x == width / 2 && z == 8) {
             return Blocks.CHEST.defaultBlockState();
         }
         return Blocks.AIR.defaultBlockState();
+    }
+
+    private static void setLootTable(
+            ChunkAccess chunk,
+            BlockPos position,
+            BlockState state,
+            ResourceLocation lootTable,
+            long seed) {
+        CompoundTag tag = new CompoundTag();
+        tag.putString("id", state.is(Blocks.BARREL) ? "minecraft:barrel" : "minecraft:chest");
+        tag.putInt("x", position.getX());
+        tag.putInt("y", position.getY());
+        tag.putInt("z", position.getZ());
+        tag.putString("LootTable", lootTable.toString());
+        tag.putLong("LootTableSeed", seed);
+        chunk.setBlockEntityNbt(tag);
+    }
+
+    private static void setSpawnerData(ChunkAccess chunk, BlockPos position, String entityId) {
+        if (entityId == null) {
+            return;
+        }
+        CompoundTag entity = new CompoundTag();
+        entity.putString("id", entityId);
+        CompoundTag spawnData = new CompoundTag();
+        spawnData.put("entity", entity);
+        CompoundTag tag = new CompoundTag();
+        tag.putString("id", "minecraft:mob_spawner");
+        tag.putInt("x", position.getX());
+        tag.putInt("y", position.getY());
+        tag.putInt("z", position.getZ());
+        tag.put("SpawnData", spawnData);
+        chunk.setBlockEntityNbt(tag);
+    }
+
+    private static String spawnerEntityId(RoomDefinition definition) {
+        return switch (definition.interiorStyle()) {
+            case SPIDER -> "minecraft:spider";
+            case JAIL, STOCKADE -> "minecraft:zombie";
+            case TREASURY, RARE -> "minecraft:skeleton";
+            default -> null;
+        };
+    }
+
+    private static long lootSeed(PlacedStructurePiece piece, long x, long y, long z) {
+        long id = piece.definition().id().hashCode();
+        return id * 0x9E3779B97F4A7C15L ^ x * 31L ^ y * 17L ^ z * 13L;
     }
 
     private static StructurePiece createPiece(
@@ -1196,10 +1423,18 @@ public final class RoomCatalog {
                         .map(value -> ResourceLocation.fromNamespaceAndPath("labrinth", "room/" + value))
                         .toList()));
         if (lootPath != null) {
-            builder.loot(StructurePiece.LootConfiguration.table(
-                    ResourceLocation.fromNamespaceAndPath("labrinth", lootPath)));
+            builder.loot(StructurePiece.LootConfiguration.table(roomLoot(lootPath)));
         }
         return builder.build();
+    }
+
+    private static ResourceLocation roomLoot(String lootPath) {
+        String path = lootPath.startsWith("chests/") ? lootPath.substring(7) : lootPath;
+        return switch (path) {
+            case "small_storage", "utility", "dead_end_reward", "rare_test" ->
+                    ResourceLocation.fromNamespaceAndPath("labrinth", "chests/" + path);
+            default -> ResourceLocation.withDefaultNamespace("chests/" + path);
+        };
     }
 
     private static RoomDefinition create(

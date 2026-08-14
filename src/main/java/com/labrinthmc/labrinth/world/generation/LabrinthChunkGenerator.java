@@ -380,7 +380,9 @@ public final class LabrinthChunkGenerator extends ChunkGenerator {
                 .stream()
                 .findFirst()
                 .ifPresent(special -> info.add("Special: " + special.definition().id()
-                        + " (" + special.openConnectors().size() + " entrances)"));
+                        + " (tier " + special.definition().tier()
+                        + ", region " + special.region().id()
+                        + ", " + special.openConnectors().size() + " entrances)"));
     }
 
     private static final int FLOOR_SPAWN_HEIGHT = StraightCorridor.FLOOR_Y + 1;

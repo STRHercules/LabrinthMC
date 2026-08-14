@@ -144,6 +144,14 @@ final class HallwayVariants {
                     GenerationConnectionRules.localCellCenter(placed))
                     ? Blocks.SEA_LANTERN.defaultBlockState()
                     : Blocks.POLISHED_DEEPSLATE.defaultBlockState();
+        } else if (local.y() == floorY + 1
+                && local.x() == GenerationConnectionRules.localCellCenter(placed).x()
+                && Math.floorMod(local.z(), 8) == 4) {
+            state = Blocks.GRAY_CARPET.defaultBlockState();
+        } else if (local.y() == ceilingY - 1
+                && Math.floorMod(local.z(), 16) == 8
+                && local.x() > 0 && local.x() < geometry.width() - 1) {
+            state = Blocks.DEEPSLATE_BRICKS.defaultBlockState();
         } else {
             // Keep the shell closed above a ramp's lower ceiling section.
             // Those upper blocks are interior headroom, but an open boundary

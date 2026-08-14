@@ -30,7 +30,7 @@ future content systems such as custom blocks and datapack authoring.
 | Generation | Deterministic 64-block cells, chunk ownership, neighbor edges, seed derivation, chunk-local materializers, and bounded compound reservations | Seed-derived, chunk-safe piece graph |
 | Verticality | Three generated floors with stairs, ladders, and shafts | More authored vertical structures |
 | Regions | Abandoned, Industrial, Flooded, Overgrown, Ancient, and Corrupted region fields | More region-specific authored content |
-| Content | Rooms, corridors, landmarks, enclosed villages, two dungeon scales, large compounds, loot metadata, and owner-chunk population | Custom blocks, datapack-friendly authoring, hazards, and broader entity systems |
+| Content | Rooms, corridors, landmarks, tiered origin-owned villages/dungeons/caves/outposts, loot tables, regional processors, and chunk-owned deterministic population positions | Custom blocks, datapack-friendly authoring, hazards, and broader entity systems |
 
 ### 1.1 Implemented dimension contract
 
@@ -749,26 +749,56 @@ bounding size, connection requirements, and multi-chunk ownership.
 
 ### 8.5 Origin-owned compound structures
 
-Villages, dungeon complexes, enormous caves, the massive hall, and monster
-outposts use `SpecialStructureCatalog` rather than separate reservation
+Villages, compact/complex/mega dungeons, cave families, the massive hall, and
+monster outposts use `SpecialStructureCatalog` rather than separate reservation
 systems. Candidate origins are aligned to deterministic eight-cell sectors;
-one origin selects the definition, floor, region, depth, and open external
-connectors. The selected `COMPOUND` piece owns its complete half-open bounds,
-including internal courtyards and air, so ordinary rooms, corridors, vertical
-pieces, and overlapping landmarks yield before materialization.
+one origin selects the definition, discovery tier, floor, region, depth, and
+open external connectors. The selected `COMPOUND` piece owns its complete
+half-open bounds, including internal courtyards, cave rock, and air, so
+ordinary rooms, corridors, vertical pieces, and overlapping landmarks yield
+before materialization.
 
 Compound connectors are placed on ordinary cell-center boundaries and are
 opened only when the canonical neighbor edge is connected. The normal content
 selector compares its boundary connector to that declared compound endpoint;
 every other compound face remains a wall. Intersecting chunks re-derive the
 same instance and render only their local intersection without loading a
-neighboring chunk. The owner chunk alone adds the deterministic population,
-while block-entity loot metadata is written with a stable position-derived
-seed so reloads do not duplicate entities or reroll an already-created chest.
+neighboring chunk. The origin still owns the population decision, but each
+deterministic entity position is materialized by the chunk containing that
+position; this keeps `WorldGenRegion` writes in bounds while allowing large
+compound interiors to receive entities. Block-entity loot metadata is written
+with a stable position-derived seed, and each population position checks for a
+matching existing entity before adding villagers or faction mobs, so repeated
+worldgen callbacks do not duplicate a compound population.
 
-`findNearest` is a bounded development lookup, and the chunk-generator debug
-screen reports a selected compound and its open entrance count. Neither path
-changes normal selection or generation.
+`findNearest` and `statistics` are bounded development lookups, and the
+`/labrinth locate`, `/labrinth inspect`, and `/labrinth stats` commands expose
+the same owner decisions without force-loading chunks. The chunk-generator
+debug screen reports the selected compound, tier, region, and open entrance
+count. None of these paths changes normal selection or generation.
+
+### 8.5.1 Template, pool, and processor contracts
+
+`LabrinthTemplatePiece` carries the authored template identifier, normalized
+connector profile, processor profile, population profile, and tags while
+delegating placement to the existing immutable `StructurePiece` contract.
+This keeps donor jigsaw markers from becoming implicit world connections.
+`LabrinthPiecePool` provides immutable named weighted pools; current procedural
+compounds use it for deterministic definition selection, and future NBT room,
+village, dungeon, and outpost modules can join the same path. The
+`LabrinthProcessorSet` palette transforms structural blocks by region while
+leaving containers, beds, crops, and other behavior-bearing blocks native.
+
+### 8.5.2 Bounded cave volumes
+
+Cave definitions reserve their full rectangular owner bounds, then materialize
+a seed-derived union of bounded ellipsoidal chambers and connector tunnels.
+The complement is filled with rock, so the cave remains enclosed even though
+its walkable interior is irregular. Family-specific rules add flooded lower
+levels, overgrowth, ore-bearing walls, ancient/corrupted palettes, ceiling
+dripstone, and deterministic columns. Contained sections are materialized
+inside the same reservation; no cave path asks Minecraft to generate a
+neighboring chunk.
 
 ### 8.6 Encounter elements
 

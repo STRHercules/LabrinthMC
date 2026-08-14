@@ -302,6 +302,13 @@ public final class CorridorVariants {
             state = isLight(geometry, localX, localZ, center)
                     ? Blocks.SEA_LANTERN.defaultBlockState()
                     : Blocks.POLISHED_DEEPSLATE.defaultBlockState();
+        } else if (localY == 1 && localX == center.x()
+                && Math.floorMod(localZ, LIGHT_SPACING) == LIGHT_SPACING / 2) {
+            state = Blocks.GRAY_CARPET.defaultBlockState();
+        } else if (localY == HEIGHT - 2
+                && Math.floorMod(localZ, LIGHT_SPACING * 2) == LIGHT_SPACING
+                && localX > 0 && localX < geometry.width() - 1) {
+            state = Blocks.DEEPSLATE_BRICKS.defaultBlockState();
         } else {
             state = hasWall(placed, geometry, localX, localZ, rotation, openDirections, center)
                     ? Blocks.DEEPSLATE_BRICKS.defaultBlockState()

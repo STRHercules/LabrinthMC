@@ -46,6 +46,7 @@ public final class GenerationArchitectureSelfCheck {
         checkRegionCatalogSystem();
         checkDepthAndLandmarkSystems();
         checkSpecialStructureSystem();
+        checkDiscoveryEcologySystem();
         System.out.println("Generation architecture self-check passed.");
     }
 
@@ -1515,6 +1516,125 @@ public final class GenerationArchitectureSelfCheck {
                         first.originCell(),
                         8).isPresent(),
                 "bounded special-structure debug lookup finds an existing structure");
+
+        Optional<SpecialStructureCatalog.Instance> village = selected.stream()
+                .filter(instance -> instance.definition().theme()
+                        == SpecialStructureDefinition.Theme.VILLAGE)
+                .filter(instance -> instance.definition().sections().stream()
+                        .anyMatch(section -> section.kind()
+                                == SpecialStructureDefinition.SectionKind.HOUSE))
+                .findFirst();
+        require(village.isPresent(), "seed scan finds a village house section");
+        SpecialStructureDefinition.Section house = village.orElseThrow().definition().sections()
+                .stream()
+                .filter(section -> section.kind() == SpecialStructureDefinition.SectionKind.HOUSE)
+                .findFirst()
+                .orElseThrow();
+        int houseCenterX = house.x() + house.width() / 2;
+        int houseCenterZ = house.z() + house.depth() / 2;
+        require(!SpecialStructureCatalog.internalRouteAt(
+                                village.orElseThrow(), houseCenterX + 3, house.y(), houseCenterZ + 3),
+                "route materialization preserves village house beds");
+        require(!SpecialStructureCatalog.internalRouteAt(
+                                village.orElseThrow(), houseCenterX - 3, house.y(), houseCenterZ + 3),
+                "route materialization preserves village house storage");
+        require(SpecialStructureCatalog.sectionWall(
+                                house, house.x(), house.y() + 1, house.z() + 1),
+                "floor-level section walls remain closed except for declared doors");
+
+        Optional<SpecialStructureCatalog.Instance> dungeon = selected.stream()
+                .filter(instance -> instance.definition().theme()
+                        == SpecialStructureDefinition.Theme.COMPACT_DUNGEON)
+                .filter(instance -> instance.definition().sections().stream()
+                        .anyMatch(section -> section.kind()
+                                == SpecialStructureDefinition.SectionKind.DUNGEON_ROOM))
+                .findFirst();
+        require(dungeon.isPresent(), "seed scan finds a compact dungeon room");
+        SpecialStructureDefinition.Section dungeonRoom = dungeon.orElseThrow().definition().sections()
+                .stream()
+                .filter(section -> section.kind() == SpecialStructureDefinition.SectionKind.DUNGEON_ROOM)
+                .findFirst()
+                .orElseThrow();
+        int dungeonCenterX = dungeonRoom.x() + dungeonRoom.width() / 2;
+        int dungeonCenterZ = dungeonRoom.z() + dungeonRoom.depth() / 2;
+        require(!SpecialStructureCatalog.internalRouteAt(
+                                dungeon.orElseThrow(), dungeonCenterX + 3, dungeonRoom.y(),
+                                dungeonCenterZ + 3),
+                "route materialization preserves dungeon spawners");
+    }
+
+    private static void checkDiscoveryEcologySystem() {
+        Set<SpecialStructureDefinition.Theme> registered = SpecialStructureCatalog.definitions()
+                .stream()
+                .map(SpecialStructureDefinition::theme)
+                .collect(java.util.stream.Collectors.toSet());
+        require(registered.containsAll(Set.of(
+                        SpecialStructureDefinition.Theme.DUNGEON_MEGA,
+                        SpecialStructureDefinition.Theme.CAVE_POCKET,
+                        SpecialStructureDefinition.Theme.FLOODED_CAVERN,
+                        SpecialStructureDefinition.Theme.OVERGROWN_GROTTO,
+                        SpecialStructureDefinition.Theme.ANCIENT_CAVE,
+                        SpecialStructureDefinition.Theme.CORRUPTED_CAVE)),
+                "new dungeon and cave discovery families are registered");
+        require(SpecialStructureCatalog.definitions().stream()
+                        .allMatch(definition -> definition.tier() != null),
+                "every compound carries a discovery tier");
+        require("minecraft:zombie".equals(SpecialStructureCatalog.spawnerEntityId(
+                                SpecialStructureDefinition.Population.ZOMBIES))
+                        && "minecraft:wither_skeleton".equals(SpecialStructureCatalog.spawnerEntityId(
+                                SpecialStructureDefinition.Population.WITHER_SKELETONS))
+                        && SpecialStructureCatalog.spawnerEntityId(
+                                SpecialStructureDefinition.Population.NONE) == null,
+                "dungeon spawner payloads carry their intended entity type");
+
+        long worldSeed = 0x5566778899AABBCCL;
+        GenerationGrid.Cell center = new GenerationGrid.Cell(24, -16);
+        SpecialStructureCatalog.Statistics first = SpecialStructureCatalog.statistics(
+                worldSeed, center, 32);
+        SpecialStructureCatalog.Statistics repeat = SpecialStructureCatalog.statistics(
+                worldSeed, center, 32);
+        require(first.equals(repeat), "discovery statistics are reload-stable");
+        require(first.candidateOrigins() > 0 && first.selectedStructures() > 0,
+                "bounded discovery statistics find selected compounds");
+        require(first.count(LabrinthDiscoveryTier.UNCOMMON)
+                        + first.count(LabrinthDiscoveryTier.RARE)
+                        + first.count(LabrinthDiscoveryTier.MAJOR)
+                        + first.count(LabrinthDiscoveryTier.LEGENDARY) > 0,
+                "statistics expose non-common discovery tiers");
+
+        Optional<SpecialStructureCatalog.Instance> cave = Optional.empty();
+        for (int seedOffset = 0; seedOffset < 32 && cave.isEmpty(); seedOffset++) {
+            for (int sectorX = 1; sectorX <= 24 && cave.isEmpty(); sectorX++) {
+                for (int sectorZ = 1; sectorZ <= 12 && cave.isEmpty(); sectorZ++) {
+                    GenerationGrid.Cell origin = new GenerationGrid.Cell(
+                            (long) sectorX * SpecialStructureCatalog.SECTOR_SIZE_CELLS,
+                            (long) sectorZ * SpecialStructureCatalog.SECTOR_SIZE_CELLS);
+                    cave = SpecialStructureCatalog.select(worldSeed + seedOffset, origin)
+                            .filter(instance -> instance.definition().isCave());
+                }
+            }
+        }
+        require(cave.isPresent(), "bounded seed scan finds a cave compound");
+        SpecialStructureCatalog.Instance caveInstance = cave.get();
+        int localCenterX = caveInstance.piece().definition().width() / 2;
+        int localCenterY = caveInstance.piece().definition().height() / 2;
+        int localCenterZ = caveInstance.piece().definition().depth() / 2;
+        require(SpecialStructureCatalog.caveVoidAt(
+                        caveInstance, localCenterX, localCenterY, localCenterZ),
+                "cave center is physically open or intentionally flooded");
+        require(!SpecialStructureCatalog.caveVoidAt(caveInstance, 0, 1, 0),
+                "bounded cave volume retains a structural wall");
+        for (Connector connector : caveInstance.openConnectors()) {
+            int x = Math.toIntExact(connector.position().x() - caveInstance.piece().origin().x());
+            int z = Math.toIntExact(connector.position().z() - caveInstance.piece().origin().z());
+            if (connector.direction() == Connector.Direction.SOUTH) {
+                z--;
+            } else if (connector.direction() == Connector.Direction.EAST) {
+                x--;
+            }
+            require(SpecialStructureCatalog.entranceOpenAt(caveInstance, x, 1, z),
+                    "selected cave entrance is physically open");
+        }
     }
 
     private static long specialFingerprint(SpecialStructureCatalog.Instance instance) {
